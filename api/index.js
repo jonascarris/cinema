@@ -351,17 +351,19 @@ app.get('/api/tickets/:id', async (req, res) => {
 // -------------------------------------------------------------
 app.post('/api/admin/checkin/:id', async (req, res) => {
   const { id } = req.params;
-  const { password } = req.body;
+  const { password, status = true } = req.body;
 
   if (password !== (process.env.ADMIN_PASSWORD || 'laranjachurrasco')) {
     return res.status(401).json({ error: 'Senha de administrador inválida.' });
   }
 
+  const isCheckin = Boolean(status);
   let found = false;
+
   if (memoryOrders.has(id)) {
     const ord = memoryOrders.get(id);
-    ord.checkin_done = true;
-    ord.checkin_at = new Date().toISOString();
+    ord.checkin_done = isCheckin;
+    ord.checkin_at = isCheckin ? new Date().toISOString() : null;
     memoryOrders.set(id, ord);
     found = true;
   }
@@ -369,7 +371,7 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
   if (supabase) {
     try {
       await supabase.from('orders').update({
-        shipping_status: 'Check-in Realizado (Entrada Confirmada)',
+        shipping_status: isCheckin ? 'Check-in Realizado (Entrada Confirmada)' : 'Pendente de Entrada',
         updated_at: new Date().toISOString()
       }).eq('id', id);
       found = true;
@@ -377,7 +379,11 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
   }
 
   if (found) {
-    return res.json({ success: true, message: 'Check-in confirmado com sucesso! Entrada liberada.' });
+    return res.json({ 
+      success: true, 
+      checkin_done: isCheckin,
+      message: isCheckin ? 'Check-in confirmado com sucesso! Entrada liberada.' : 'Check-in desfeito com sucesso.' 
+    });
   }
   return res.status(404).json({ error: 'Ingresso não encontrado.' });
 });

@@ -3,18 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel do Organizador - Cinema Daniel e a Fornalha Ardente</title>
+  <title>Painel da Portaria & Check-in | Daniel e a Fornalha Ardente</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" type="image/jpeg" href="./poster.jpg">
+
+  <style>
+    /* Estilos específicos para Mobile, Tablet e Impressão */
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--gold-primary);
+      color: #000;
+      border-color: var(--gold-primary);
+    }
+
+    .ticket-card-mobile {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: var(--transition);
+    }
+    .ticket-card-mobile.checked-in {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .btn-checkin-touch {
+      width: 100%;
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--flame-gradient);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+    }
+    .btn-checkin-touch:active {
+      transform: scale(0.98);
+    }
+
+    /* Regras de Impressão de Folha Limpa em Preto e Branco */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        font-size: 10pt;
+      }
+      .no-print, nav, .cinema-navbar, .cinema-footer, #admin-login-box, .filter-container, .search-container, .stats-container, .print-btn-bar {
+        display: none !important;
+      }
+      #print-sheet-header {
+        display: block !important;
+      }
+      #print-table-wrapper {
+        display: block !important;
+      }
+      #desktop-table-container, #mobile-cards-container {
+        display: none !important;
+      }
+      table.print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        color: #000 !important;
+        margin-top: 1rem;
+      }
+      table.print-table th, table.print-table td {
+        border: 1px solid #333 !important;
+        padding: 6px 8px !important;
+        text-align: left !important;
+      }
+      table.print-table th {
+        background: #eee !important;
+        font-weight: bold;
+      }
+    }
+    #print-sheet-header, #print-table-wrapper {
+      display: none;
+    }
+  </style>
 </head>
 <body style="padding-bottom: 5rem;">
 
-  <nav class="cinema-navbar">
+  <!-- Barra de Navegação -->
+  <nav class="cinema-navbar no-print">
     <a href="./index.html" class="brand-badge">
       <div class="brand-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -22,44 +119,96 @@
         </svg>
       </div>
       <div>
-        <span class="brand-title">Painel de Portaria & Gestão</span>
+        <span class="brand-title">Portaria & Check-in</span>
         <span class="brand-subtitle">Cinesystem Américas Shopping • 02/11 às 19h</span>
       </div>
     </a>
 
-    <a href="./index.html" class="btn-primary-cine" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">
-      Ver Site
-    </a>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="./index.html" class="btn-primary-cine" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+        ← Ver Site
+      </a>
+    </div>
   </nav>
 
-  <div class="container" style="margin-top: 1.5rem;">
+  <!-- Cabeçalho Exclusivo de Impressão -->
+  <div id="print-sheet-header">
+    <h2 style="font-size: 16pt; margin-bottom: 4px; text-transform: uppercase;">
+      Lista Oficial de Portaria & Presença - Daniel e a Fornalha Ardente
+    </h2>
+    <p style="font-size: 10pt; margin-bottom: 12px; border-bottom: 1px solid #000; padding-bottom: 6px;">
+      <strong>Sessão:</strong> 02/11 às 19h00 (Entrada a partir das 18h30) | <strong>Local:</strong> Cinesystem Américas Shopping<br>
+      <strong>Data de Emissão da Lista:</strong> <span id="print-date"></span>
+    </p>
+  </div>
+
+  <div class="container" style="margin-top: 1rem;">
     
-    <!-- Login Admin caso não autenticado -->
+    <!-- Formulário de Login do Organizador -->
     <div id="admin-login-box" class="info-card" style="max-width: 440px; margin: 3rem auto; text-align: center;">
-      <h3 class="font-cinematic text-gradient" style="margin-bottom: 1rem;">Acesso do Organizador</h3>
-      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
-        Digite a senha de administrador configurada para visualizar as vendas e realizar check-in dos ingressos.
+      <span class="hero-tag" style="margin-bottom: 0.75rem;">Acesso Restrito</span>
+      <h3 class="font-cinematic text-gradient" style="margin-bottom: 0.5rem; font-size: 1.6rem;">Portaria do Cinema</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+        Área exclusiva dos organizadores para confirmação de presença no tablet/celular e impressão da lista.
       </p>
+
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.35); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.825rem; text-align: left; color: #fef08a;">
+        🔑 <strong>Credenciais de Acesso:</strong><br>
+        • Usuário: <code style="background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 3px;">admin</code><br>
+        • Senha: <code style="background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 3px;">laranjachurrasco</code>
+      </div>
 
       <form id="admin-login-form">
         <div class="form-group" style="text-align: left;">
-          <label class="form-label">Senha de Administrador</label>
-          <input type="password" id="admin-password" class="form-input" placeholder="Digite sua senha" required>
+          <label class="form-label">Usuário</label>
+          <input type="text" id="admin-user" class="form-input" value="admin" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">Senha</label>
+          <input type="password" id="admin-password" class="form-input" placeholder="Digite a senha" required autofocus>
+        </div>
+
+        <div style="text-align: left; margin-bottom: 1.25rem; font-size: 0.85rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); cursor: pointer;">
+            <input type="checkbox" id="remember-me" checked>
+            <span>Manter conectado neste celular / tablet</span>
+          </label>
         </div>
 
         <button type="submit" class="btn-primary-cine">
-          Acessar Painel
+          Entrar na Portaria
         </button>
       </form>
     </div>
 
-    <!-- Conteúdo do Painel -->
+    <!-- Conteúdo Principal do Painel -->
     <div id="admin-dashboard" style="display: none;">
       
-      <!-- Métricas Rápidas -->
-      <div class="session-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem;">
+      <!-- Barra de Ações: Imprimir & Exportar -->
+      <div class="print-btn-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <h2 class="font-cinematic text-gradient" style="font-size: 1.5rem;">Gestão de Ingressos</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Controle de entrada em tempo real na portaria</p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn-primary-cine" onclick="window.print()" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; background: rgba(255,255,255,0.15); border: 1px solid var(--gold-primary);">
+            🖨️ Imprimir Lista de Portaria
+          </button>
+          <button type="button" class="btn-primary-cine" id="btn-export-csv" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; background: #059669;">
+            📥 Baixar Planilha (CSV)
+          </button>
+          <button type="button" class="btn-primary-cine" id="btn-logout" style="padding: 0.6rem 1rem; font-size: 0.85rem; width: auto; background: transparent; border: 1px solid rgba(255,255,255,0.2);">
+            Sair
+          </button>
+        </div>
+      </div>
+
+      <!-- Métricas Resumo -->
+      <div class="stats-container session-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.5rem;">
         <div class="info-card">
-          <span class="card-label">Total Ingressos Pagantes</span>
+          <span class="card-label">Total Ingressos</span>
           <span class="card-val text-gold" id="stat-tickets">0</span>
         </div>
 
@@ -69,47 +218,71 @@
         </div>
 
         <div class="info-card">
-          <span class="card-label">Faturamento Total</span>
-          <span class="card-val text-gold" id="stat-revenue">R$ 0,00</span>
+          <span class="card-label">Presenças Confirmadas</span>
+          <span class="card-val" id="stat-checkins" style="color: #10b981;">0</span>
         </div>
 
         <div class="info-card">
-          <span class="card-label">Check-ins Realizados</span>
-          <span class="card-val" id="stat-checkins" style="color: #10b981;">0</span>
+          <span class="card-label">Aguardando Entrada</span>
+          <span class="card-val" id="stat-pending" style="color: #f59e0b;">0</span>
+        </div>
+
+        <div class="info-card">
+          <span class="card-label">Faturamento Total</span>
+          <span class="card-val text-gold" id="stat-revenue">R$ 0,00</span>
         </div>
       </div>
 
-      <!-- Barra de Busca Rápida na Portaria -->
-      <div class="info-card" style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-        <div style="flex: 1; min-width: 260px;">
-          <input type="text" id="admin-search" class="form-input" placeholder="🔍 Buscar por Nome, CPF ou Código (ex: DAN-...)">
+      <!-- Busca e Filtros Rápidos (Touch-friendly para celular/tablet) -->
+      <div class="search-container info-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <div style="position: relative; margin-bottom: 1rem;">
+          <input type="text" id="admin-search" class="form-input" placeholder="🔍 Digite Nome, CPF ou Código (ex: DAN-...) para busca rápida" style="font-size: 1.05rem; padding: 0.9rem 1.2rem;">
         </div>
-        <button type="button" class="btn-primary-cine" id="btn-refresh-list" style="width: auto; padding: 0.8rem 1.5rem; font-size: 0.9rem;">
-          Atualizar Lista
-        </button>
+
+        <div class="filter-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="filter-btn active" data-filter="all">Todos (<span id="count-all">0</span>)</button>
+          <button type="button" class="filter-btn" data-filter="pending">Aguardando Entrada (<span id="count-pending">0</span>)</button>
+          <button type="button" class="filter-btn" data-filter="checked">Já Entraram (<span id="count-checked">0</span>)</button>
+          <button type="button" class="filter-btn" id="btn-refresh" style="margin-left: auto;">🔄 Atualizar</button>
+        </div>
       </div>
 
-      <!-- Tabela de Ingressos -->
-      <div class="info-card" style="overflow-x: auto; padding: 1rem;">
+      <!-- Visualização em Cards para Celular / Tablet -->
+      <div id="mobile-cards-container"></div>
+
+      <!-- Tabela para Desktop -->
+      <div id="desktop-table-container" class="info-card" style="overflow-x: auto; padding: 1rem; display: none;">
         <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
           <thead>
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
-              <th style="padding: 1rem;">Código</th>
-              <th style="padding: 1rem;">Comprador</th>
-              <th style="padding: 1rem;">CPF / Contato</th>
-              <th style="padding: 1rem;">Qtd.</th>
-              <th style="padding: 1rem;">Valor</th>
-              <th style="padding: 1rem;">Status</th>
-              <th style="padding: 1rem; text-align: center;">Portaria (Check-in)</th>
+              <th style="padding: 0.75rem;">Código</th>
+              <th style="padding: 0.75rem;">Titular</th>
+              <th style="padding: 0.75rem;">CPF / Contato</th>
+              <th style="padding: 0.75rem;">Qtd.</th>
+              <th style="padding: 0.75rem;">Valor</th>
+              <th style="padding: 0.75rem;">Status Pagamento</th>
+              <th style="padding: 0.75rem; text-align: center;">Presença na Porta</th>
             </tr>
           </thead>
-          <tbody id="tickets-table-body">
+          <tbody id="desktop-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Tabela Otimizada para Impressão -->
+      <div id="print-table-wrapper">
+        <table class="print-table">
+          <thead>
             <tr>
-              <td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                Carregando lista de ingressos...
-              </td>
+              <th style="width: 35px; text-align: center;">[ V ]</th>
+              <th>Nome Completo do Titular</th>
+              <th>CPF</th>
+              <th>Telefone</th>
+              <th style="text-align: center;">Qtd</th>
+              <th>Código</th>
+              <th style="width: 120px;">Assinatura / Visto</th>
             </tr>
-          </tbody>
+          </thead>
+          <tbody id="print-table-body"></tbody>
         </table>
       </div>
 
@@ -117,7 +290,7 @@
 
   </div>
 
-  <footer class="cinema-footer" style="margin-top: 3rem; padding: 2rem 0;">
+  <footer class="cinema-footer no-print" style="margin-top: 3rem; padding: 2rem 0;">
     <div class="container" style="text-align: center;">
       <p style="font-size: 0.85rem; color: #94a3b8;">
         Desenvolvido por <a href="https://carrislabs.com" target="_blank" rel="noopener noreferrer" style="color: var(--gold-primary); text-decoration: none; font-weight: 600;">Carrislabs.com</a>
@@ -131,26 +304,61 @@
       : '/api';
 
     let currentPassword = '';
-    let ticketsList = [];
+    let rawTickets = [];
+    let currentFilter = 'all';
 
-    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      currentPassword = document.getElementById('admin-password').value;
-      loadTickets();
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('print-date').textContent = new Date().toLocaleString('pt-BR');
+
+      // Verifica login salvo no celular
+      const savedPass = localStorage.getItem('cinema_admin_pass');
+      if (savedPass) {
+        currentPassword = savedPass;
+        document.getElementById('admin-password').value = savedPass;
+        loadTickets();
+      }
+
+      initEventListeners();
     });
 
-    document.getElementById('btn-refresh-list').addEventListener('click', loadTickets);
+    function initEventListeners() {
+      // Login
+      document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        currentPassword = document.getElementById('admin-password').value.trim();
+        if (document.getElementById('remember-me').checked) {
+          localStorage.setItem('cinema_admin_pass', currentPassword);
+        } else {
+          localStorage.removeItem('cinema_admin_pass');
+        }
+        loadTickets();
+      });
 
-    document.getElementById('admin-search').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase();
-      const filtered = ticketsList.filter(t => 
-        (t.customer_name && t.customer_name.toLowerCase().includes(q)) ||
-        (t.cpf && t.cpf.includes(q)) ||
-        (t.ticket_code && t.ticket_code.toLowerCase().includes(q)) ||
-        (t.id && t.id.toLowerCase().includes(q))
-      );
-      renderTable(filtered);
-    });
+      // Logout
+      document.getElementById('btn-logout').addEventListener('click', () => {
+        localStorage.removeItem('cinema_admin_pass');
+        location.reload();
+      });
+
+      // Busca
+      document.getElementById('admin-search').addEventListener('input', applyFilters);
+
+      // Botão Atualizar
+      document.getElementById('btn-refresh').addEventListener('click', loadTickets);
+
+      // Filtros
+      document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          applyFilters();
+        });
+      });
+
+      // Exportar CSV
+      document.getElementById('btn-export-csv').addEventListener('click', exportToCSV);
+    }
 
     async function loadTickets() {
       try {
@@ -159,93 +367,195 @@
         });
 
         if (!res.ok) {
-          alert('Senha de administrador incorreta!');
+          alert('Senha de administrador incorreta! (Senha padrão: laranjachurrasco)');
+          localStorage.removeItem('cinema_admin_pass');
           return;
         }
 
         const data = await res.json();
-        ticketsList = data.tickets || [];
+        rawTickets = data.tickets || [];
+
+        // Ordena por nome em ordem alfabética para facilitar a busca e a lista impressa
+        rawTickets.sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || ''));
 
         document.getElementById('admin-login-box').style.display = 'none';
         document.getElementById('admin-dashboard').style.display = 'block';
 
-        updateStats(ticketsList);
-        renderTable(ticketsList);
+        updateStats();
+        applyFilters();
+        renderPrintTable();
 
       } catch (err) {
         alert('Erro ao carregar ingressos: ' + err.message);
       }
     }
 
-    function updateStats(list) {
+    function updateStats() {
       let totalTickets = 0;
       let totalKids = 0;
-      let totalRev = 0;
       let checkins = 0;
+      let totalRevenue = 0;
 
-      list.forEach(item => {
+      let countChecked = 0;
+      let countPending = 0;
+
+      rawTickets.forEach(item => {
         const qty = item.quantity || 1;
         const kids = item.children_under_3 || 0;
         const rev = Number(item.total_amount) || (qty * 27.00);
 
         totalTickets += qty;
         totalKids += kids;
-        totalRev += rev;
-        if (item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'))) {
+        totalRevenue += rev;
+
+        const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
+        if (isChecked) {
           checkins += qty;
+          countChecked++;
+        } else {
+          countPending++;
         }
       });
 
       document.getElementById('stat-tickets').textContent = totalTickets;
       document.getElementById('stat-kids').textContent = totalKids;
-      document.getElementById('stat-revenue').textContent = totalRev.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       document.getElementById('stat-checkins').textContent = checkins;
+      document.getElementById('stat-pending').textContent = totalTickets - checkins;
+      document.getElementById('stat-revenue').textContent = totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      document.getElementById('count-all').textContent = rawTickets.length;
+      document.getElementById('count-pending').textContent = countPending;
+      document.getElementById('count-checked').textContent = countChecked;
     }
 
-    function renderTable(list) {
-      const tbody = document.getElementById('tickets-table-body');
-      tbody.innerHTML = '';
+    function applyFilters() {
+      const q = (document.getElementById('admin-search').value || '').toLowerCase().trim();
+
+      const filtered = rawTickets.filter(item => {
+        const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
+        
+        // Filtro de aba
+        if (currentFilter === 'pending' && isChecked) return false;
+        if (currentFilter === 'checked' && !isChecked) return false;
+
+        // Filtro de busca
+        if (!q) return true;
+        return (
+          (item.customer_name && item.customer_name.toLowerCase().includes(q)) ||
+          (item.cpf && item.cpf.includes(q)) ||
+          (item.phone && item.phone.includes(q)) ||
+          (item.ticket_code && item.ticket_code.toLowerCase().includes(q)) ||
+          (item.id && item.id.toLowerCase().includes(q))
+        );
+      });
+
+      renderMobileCards(filtered);
+      renderDesktopTable(filtered);
+    }
+
+    function renderMobileCards(list) {
+      const container = document.getElementById('mobile-cards-container');
+      container.innerHTML = '';
 
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">Nenhum ingresso encontrado.</td></tr>';
+        container.innerHTML = `
+          <div class="info-card" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            Nenhum comprador encontrado com os filtros selecionados.
+          </div>
+        `;
         return;
       }
 
-      list.forEach(t => {
-        const code = t.ticket_code || 'DAN-' + (t.id ? t.id.substring(0, 5).toUpperCase() : '00000');
-        const isChecked = t.checkin_done || (t.shipping_status && t.shipping_status.includes('Check-in'));
-        const isApproved = t.mp_status === 'approved' || !t.mp_status;
+      list.forEach(item => {
+        const code = item.ticket_code || 'DAN-' + (item.id ? item.id.substring(0, 5).toUpperCase() : '00000');
+        const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
+        const qty = item.quantity || 1;
+        const kids = item.children_under_3 || 0;
+
+        const card = document.createElement('div');
+        card.className = `ticket-card-mobile ${isChecked ? 'checked-in' : ''}`;
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <span style="font-family: monospace; font-weight: 800; color: var(--gold-primary); font-size: 0.95rem;">${code}</span>
+              <h3 style="font-size: 1.15rem; margin-top: 0.2rem; color: #fff;">${item.customer_name || 'Comprador'}</h3>
+            </div>
+            <span style="font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: var(--radius-full); font-weight: 700; background: ${isChecked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isChecked ? '#10b981' : '#f59e0b'};">
+              ${isChecked ? '✓ Entrada Confirmada' : 'Aguardando'}
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #cbd5e1; flex-wrap: wrap;">
+            <span>📄 CPF: <strong>${item.cpf || 'Não informado'}</strong></span>
+            <span>📱 Tel: <strong>${item.phone || 'Não informado'}</strong></span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.9rem;">
+            <div>
+              <strong>${qty}x Inteira (R$ ${(qty * 27).toFixed(2).replace('.', ',')})</strong>
+              ${kids > 0 ? `<br><small style="color: #fef08a;">+ ${kids} Criança(s) até 3 anos (isenta)</small>` : ''}
+            </div>
+            <a href="./ingresso.html?id=${item.id}" target="_blank" style="color: var(--gold-primary); font-size: 0.8rem; text-decoration: underline;">
+              Ver Ingresso
+            </a>
+          </div>
+
+          <div style="margin-top: 0.25rem;">
+            ${isChecked ? `
+              <button type="button" class="btn-checkin-touch" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981;" onclick="toggleCheckin('${item.id}', false)">
+                ✓ Presença Confirmada (Desfazer?)
+              </button>
+            ` : `
+              <button type="button" class="btn-checkin-touch" onclick="toggleCheckin('${item.id}', true)">
+                ✓ Confirmar Entrada na Sala
+              </button>
+            `}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderDesktopTable(list) {
+      const tbody = document.getElementById('desktop-table-body');
+      tbody.innerHTML = '';
+
+      list.forEach(item => {
+        const code = item.ticket_code || 'DAN-' + (item.id ? item.id.substring(0, 5).toUpperCase() : '00000');
+        const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
+        const qty = item.quantity || 1;
+        const kids = item.children_under_3 || 0;
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
         tr.innerHTML = `
-          <td style="padding: 1rem;"><strong style="color: var(--gold-primary); font-family: monospace;">${code}</strong></td>
-          <td style="padding: 1rem;">
-            <strong>${t.customer_name || 'Comprador'}</strong><br>
-            <small style="color: var(--text-muted);">${t.email || ''}</small>
+          <td style="padding: 0.75rem;"><strong style="font-family: monospace; color: var(--gold-primary);">${code}</strong></td>
+          <td style="padding: 0.75rem;">
+            <strong>${item.customer_name || 'Comprador'}</strong><br>
+            <small style="color: var(--text-muted);">${item.email || ''}</small>
           </td>
-          <td style="padding: 1rem;">
-            ${t.cpf || 'Não informado'}<br>
-            <small style="color: var(--text-muted);">${t.phone || ''}</small>
+          <td style="padding: 0.75rem;">
+            ${item.cpf || 'Não informado'}<br>
+            <small style="color: var(--text-muted);">${item.phone || ''}</small>
           </td>
-          <td style="padding: 1rem;">
-            <strong>${t.quantity || 1} pagante(s)</strong>
-            ${t.children_under_3 ? `<br><small style="color: #cbd5e1;">+${t.children_under_3} criança(s)</small>` : ''}
+          <td style="padding: 0.75rem;">
+            <strong>${qty}</strong>
+            ${kids > 0 ? `<br><small style="color: #fef08a;">+${kids} criança(s)</small>` : ''}
           </td>
-          <td style="padding: 1rem; color: var(--gold-primary); font-weight: 700;">
-            R$ ${(Number(t.total_amount) || ((t.quantity || 1) * 27)).toFixed(2).replace('.', ',')}
+          <td style="padding: 0.75rem; color: var(--gold-primary); font-weight: 700;">
+            R$ ${(Number(item.total_amount) || (qty * 27)).toFixed(2).replace('.', ',')}
           </td>
-          <td style="padding: 1rem;">
-            <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background: ${isApproved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isApproved ? '#10b981' : '#f59e0b'};">
-              ${isApproved ? 'Pago / Liberado' : 'Pendente'}
+          <td style="padding: 0.75rem;">
+            <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.2); color: #10b981;">
+              Pago
             </span>
           </td>
-          <td style="padding: 1rem; text-align: center;">
+          <td style="padding: 0.75rem; text-align: center;">
             ${isChecked ? `
               <span style="color: #10b981; font-weight: 700; font-size: 0.85rem;">✓ Entrada Confirmada</span>
             ` : `
-              <button type="button" class="btn-primary-cine" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; width: auto;" onclick="confirmCheckin('${t.id}')">
-                Confirmar Entrada
+              <button type="button" class="btn-primary-cine" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; width: auto;" onclick="toggleCheckin('${item.id}', true)">
+                Confirmar
               </button>
             `}
           </td>
@@ -254,26 +564,76 @@
       });
     }
 
-    async function confirmCheckin(id) {
-      if (!confirm('Confirmar entrada deste titular na sala do cinema?')) return;
+    function renderPrintTable() {
+      const tbody = document.getElementById('print-table-body');
+      tbody.innerHTML = '';
 
+      rawTickets.forEach(item => {
+        const code = item.ticket_code || 'DAN-' + (item.id ? item.id.substring(0, 5).toUpperCase() : '00000');
+        const qty = item.quantity || 1;
+        const kids = item.children_under_3 || 0;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align: center; font-size: 14pt;">[  ]</td>
+          <td><strong>${item.customer_name || 'Comprador'}</strong></td>
+          <td>${item.cpf || '-'}</td>
+          <td>${item.phone || '-'}</td>
+          <td style="text-align: center;"><strong>${qty}</strong> ${kids > 0 ? `(+${kids} colo)` : ''}</td>
+          <td style="font-family: monospace;">${code}</td>
+          <td></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function toggleCheckin(id, status) {
       try {
         const res = await fetch(`${API_BASE_URL}/admin/checkin/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: currentPassword })
+          body: JSON.stringify({ password: currentPassword, status })
         });
 
         const data = await res.json();
         if (res.ok && data.success) {
-          alert('Check-in realizado com sucesso!');
-          loadTickets();
+          // Atualiza localmente para resposta ultra rápida sem delay
+          const target = rawTickets.find(t => t.id === id);
+          if (target) {
+            target.checkin_done = status;
+            target.shipping_status = status ? 'Check-in Realizado' : 'Pendente';
+          }
+          updateStats();
+          applyFilters();
         } else {
-          alert(data.error || 'Erro ao realizar check-in.');
+          alert(data.error || 'Erro ao processar check-in.');
         }
       } catch (err) {
-        alert('Erro ao comunicar com o servidor: ' + err.message);
+        alert('Erro de comunicação: ' + err.message);
       }
+    }
+
+    function exportToCSV() {
+      if (rawTickets.length === 0) {
+        alert('Nenhum dado para exportar.');
+        return;
+      }
+
+      let csv = 'Código;Nome Comprador;CPF;Telefone;E-mail;Qtd Ingressos;Criancas Colo;Valor Total;Check-in Realizado\n';
+      rawTickets.forEach(t => {
+        const code = t.ticket_code || 'DAN-' + (t.id ? t.id.substring(0, 5).toUpperCase() : '');
+        const isChecked = t.checkin_done || (t.shipping_status && t.shipping_status.includes('Check-in')) ? 'SIM' : 'NÃO';
+        csv += `"${code}";"${t.customer_name || ''}";"${t.cpf || ''}";"${t.phone || ''}";"${t.email || ''}";"${t.quantity || 1}";"${t.children_under_3 || 0}";"R$ ${(Number(t.total_amount) || (t.quantity || 1) * 27).toFixed(2)}";"${isChecked}"\n`;
+      });
+
+      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `lista_ingressos_cinema_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>
