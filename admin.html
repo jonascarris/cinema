@@ -152,21 +152,15 @@
         Área exclusiva dos organizadores para confirmação de presença no tablet/celular e impressão da lista.
       </p>
 
-      <div style="background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.35); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.825rem; text-align: left; color: #fef08a;">
-        🔑 <strong>Credenciais de Acesso:</strong><br>
-        • Usuário: <code style="background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 3px;">admin</code><br>
-        • Senha: <code style="background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 3px;">laranjachurrasco</code>
-      </div>
-
       <form id="admin-login-form">
         <div class="form-group" style="text-align: left;">
           <label class="form-label">Usuário</label>
-          <input type="text" id="admin-user" class="form-input" value="admin" required>
+          <input type="text" id="admin-user" class="form-input" placeholder="Digite seu usuário" required>
         </div>
 
         <div class="form-group" style="text-align: left;">
           <label class="form-label">Senha</label>
-          <input type="password" id="admin-password" class="form-input" placeholder="Digite a senha" required autofocus>
+          <input type="password" id="admin-password" class="form-input" placeholder="Digite sua senha" required autofocus>
         </div>
 
         <div style="text-align: left; margin-bottom: 1.25rem; font-size: 0.85rem;">
@@ -367,7 +361,7 @@
         });
 
         if (!res.ok) {
-          alert('Senha de administrador incorreta! (Senha padrão: laranjachurrasco)');
+          alert('Usuário ou senha incorretos.');
           localStorage.removeItem('cinema_admin_pass');
           return;
         }
