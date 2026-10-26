@@ -246,7 +246,7 @@ app.post('/api/checkout/create-payment', async (req, res) => {
           notification_url: `${baseUrl}/api/webhooks/mercadopago`,
           statement_descriptor: 'CINEMA DANIEL',
           payment_methods: {
-            installments: 6,
+            installments: 1,
             default_installments: 1
           }
         };
