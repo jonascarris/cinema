@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Organizador - Cinema Daniel e a Fornalha Ardente</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="icon" type="image/jpeg" href="./poster.jpg">
+</head>
+<body style="padding-bottom: 5rem;">
+
+  <nav class="cinema-navbar">
+    <a href="./index.html" class="brand-badge">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </div>
+      <div>
+        <span class="brand-title">Painel de Portaria & Gestão</span>
+        <span class="brand-subtitle">Cinesystem Américas Shopping • 02/11 às 19h</span>
+      </div>
+    </a>
+
+    <a href="./index.html" class="btn-primary-cine" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">
+      Ver Site
+    </a>
+  </nav>
+
+  <div class="container" style="margin-top: 1.5rem;">
+    
+    <!-- Login Admin caso não autenticado -->
+    <div id="admin-login-box" class="info-card" style="max-width: 440px; margin: 3rem auto; text-align: center;">
+      <h3 class="font-cinematic text-gradient" style="margin-bottom: 1rem;">Acesso do Organizador</h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+        Digite a senha de administrador configurada para visualizar as vendas e realizar check-in dos ingressos.
+      </p>
+
+      <form id="admin-login-form">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">Senha de Administrador</label>
+          <input type="password" id="admin-password" class="form-input" placeholder="Digite sua senha" required>
+        </div>
+
+        <button type="submit" class="btn-primary-cine">
+          Acessar Painel
+        </button>
+      </form>
+    </div>
+
+    <!-- Conteúdo do Painel -->
+    <div id="admin-dashboard" style="display: none;">
+      
+      <!-- Métricas Rápidas -->
+      <div class="session-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem;">
+        <div class="info-card">
+          <span class="card-label">Total Ingressos Pagantes</span>
+          <span class="card-val text-gold" id="stat-tickets">0</span>
+        </div>
+
+        <div class="info-card">
+          <span class="card-label">Crianças até 3 anos</span>
+          <span class="card-val" id="stat-kids">0</span>
+        </div>
+
+        <div class="info-card">
+          <span class="card-label">Faturamento Total</span>
+          <span class="card-val text-gold" id="stat-revenue">R$ 0,00</span>
+        </div>
+
+        <div class="info-card">
+          <span class="card-label">Check-ins Realizados</span>
+          <span class="card-val" id="stat-checkins" style="color: #10b981;">0</span>
+        </div>
+      </div>
+
+      <!-- Barra de Busca Rápida na Portaria -->
+      <div class="info-card" style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="flex: 1; min-width: 260px;">
+          <input type="text" id="admin-search" class="form-input" placeholder="🔍 Buscar por Nome, CPF ou Código (ex: DAN-...)">
+        </div>
+        <button type="button" class="btn-primary-cine" id="btn-refresh-list" style="width: auto; padding: 0.8rem 1.5rem; font-size: 0.9rem;">
+          Atualizar Lista
+        </button>
+      </div>
+
+      <!-- Tabela de Ingressos -->
+      <div class="info-card" style="overflow-x: auto; padding: 1rem;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+              <th style="padding: 1rem;">Código</th>
+              <th style="padding: 1rem;">Comprador</th>
+              <th style="padding: 1rem;">CPF / Contato</th>
+              <th style="padding: 1rem;">Qtd.</th>
+              <th style="padding: 1rem;">Valor</th>
+              <th style="padding: 1rem;">Status</th>
+              <th style="padding: 1rem; text-align: center;">Portaria (Check-in)</th>
+            </tr>
+          </thead>
+          <tbody id="tickets-table-body">
+            <tr>
+              <td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                Carregando lista de ingressos...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api'
+      : '/api';
+
+    let currentPassword = '';
+    let ticketsList = [];
+
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentPassword = document.getElementById('admin-password').value;
+      loadTickets();
+    });
+
+    document.getElementById('btn-refresh-list').addEventListener('click', loadTickets);
+
+    document.getElementById('admin-search').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = ticketsList.filter(t => 
+        (t.customer_name && t.customer_name.toLowerCase().includes(q)) ||
+        (t.cpf && t.cpf.includes(q)) ||
+        (t.ticket_code && t.ticket_code.toLowerCase().includes(q)) ||
+        (t.id && t.id.toLowerCase().includes(q))
+      );
+      renderTable(filtered);
+    });
+
+    async function loadTickets() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/tickets`, {
+          headers: { 'x-admin-password': currentPassword }
+        });
+
+        if (!res.ok) {
+          alert('Senha de administrador incorreta!');
+          return;
+        }
+
+        const data = await res.json();
+        ticketsList = data.tickets || [];
+
+        document.getElementById('admin-login-box').style.display = 'none';
+        document.getElementById('admin-dashboard').style.display = 'block';
+
+        updateStats(ticketsList);
+        renderTable(ticketsList);
+
+      } catch (err) {
+        alert('Erro ao carregar ingressos: ' + err.message);
+      }
+    }
+
+    function updateStats(list) {
+      let totalTickets = 0;
+      let totalKids = 0;
+      let totalRev = 0;
+      let checkins = 0;
+
+      list.forEach(item => {
+        const qty = item.quantity || 1;
+        const kids = item.children_under_3 || 0;
+        const rev = Number(item.total_amount) || (qty * 27.00);
+
+        totalTickets += qty;
+        totalKids += kids;
+        totalRev += rev;
+        if (item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'))) {
+          checkins += qty;
+        }
+      });
+
+      document.getElementById('stat-tickets').textContent = totalTickets;
+      document.getElementById('stat-kids').textContent = totalKids;
+      document.getElementById('stat-revenue').textContent = totalRev.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('stat-checkins').textContent = checkins;
+    }
+
+    function renderTable(list) {
+      const tbody = document.getElementById('tickets-table-body');
+      tbody.innerHTML = '';
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-muted);">Nenhum ingresso encontrado.</td></tr>';
+        return;
+      }
+
+      list.forEach(t => {
+        const code = t.ticket_code || 'DAN-' + (t.id ? t.id.substring(0, 5).toUpperCase() : '00000');
+        const isChecked = t.checkin_done || (t.shipping_status && t.shipping_status.includes('Check-in'));
+        const isApproved = t.mp_status === 'approved' || !t.mp_status;
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+        tr.innerHTML = `
+          <td style="padding: 1rem;"><strong style="color: var(--gold-primary); font-family: monospace;">${code}</strong></td>
+          <td style="padding: 1rem;">
+            <strong>${t.customer_name || 'Comprador'}</strong><br>
+            <small style="color: var(--text-muted);">${t.email || ''}</small>
+          </td>
+          <td style="padding: 1rem;">
+            ${t.cpf || 'Não informado'}<br>
+            <small style="color: var(--text-muted);">${t.phone || ''}</small>
+          </td>
+          <td style="padding: 1rem;">
+            <strong>${t.quantity || 1} pagante(s)</strong>
+            ${t.children_under_3 ? `<br><small style="color: #cbd5e1;">+${t.children_under_3} criança(s)</small>` : ''}
+          </td>
+          <td style="padding: 1rem; color: var(--gold-primary); font-weight: 700;">
+            R$ ${(Number(t.total_amount) || ((t.quantity || 1) * 27)).toFixed(2).replace('.', ',')}
+          </td>
+          <td style="padding: 1rem;">
+            <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background: ${isApproved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isApproved ? '#10b981' : '#f59e0b'};">
+              ${isApproved ? 'Pago / Liberado' : 'Pendente'}
+            </span>
+          </td>
+          <td style="padding: 1rem; text-align: center;">
+            ${isChecked ? `
+              <span style="color: #10b981; font-weight: 700; font-size: 0.85rem;">✓ Entrada Confirmada</span>
+            ` : `
+              <button type="button" class="btn-primary-cine" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; width: auto;" onclick="confirmCheckin('${t.id}')">
+                Confirmar Entrada
+              </button>
+            `}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function confirmCheckin(id) {
+      if (!confirm('Confirmar entrada deste titular na sala do cinema?')) return;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/checkin/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: currentPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('Check-in realizado com sucesso!');
+          loadTickets();
+        } else {
+          alert(data.error || 'Erro ao realizar check-in.');
+        }
+      } catch (err) {
+        alert('Erro ao comunicar com o servidor: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

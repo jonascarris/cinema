@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingresso Digital | Daniel e a Fornalha Ardente</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="icon" type="image/jpeg" href="./poster.jpg">
+  
+  <style>
+    @media print {
+      body { background: white; color: black; }
+      .no-print { display: none !important; }
+      .ticket-wrapper { border: 2px solid #000; box-shadow: none; margin: 0 auto; }
+      .ticket-header { background: #eee !important; color: #000 !important; }
+      .text-gradient { -webkit-text-fill-color: black !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="cinema-navbar no-print">
+    <a href="./index.html" class="brand-badge">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </div>
+      <div>
+        <span class="brand-title">Cine Sessão Especial</span>
+        <span class="brand-subtitle">Cinesystem Américas Shopping</span>
+      </div>
+    </a>
+
+    <div>
+      <a href="./index.html" class="btn-primary-cine" style="padding: 0.6rem 1.25rem; font-size: 0.85rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+        ← Voltar ao Início
+      </a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="ticket-wrapper">
+      
+      <!-- Topo do Ingresso -->
+      <div class="ticket-header">
+        <span class="hero-tag" style="background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.3); color: white; margin-bottom: 0.5rem;">
+          Ingresso Digital Oficial
+        </span>
+        <h2 class="font-cinematic" style="font-size: 1.75rem; margin-bottom: 0.25rem;">
+          Daniel e a Fornalha Ardente
+        </h2>
+        <p style="font-size: 0.9rem; opacity: 0.95;">
+          "Se curvar não é uma opção."
+        </p>
+      </div>
+
+      <!-- Corpo do Ingresso -->
+      <div class="ticket-body" style="text-align: center;">
+
+        <!-- Status de Pagamento -->
+        <div id="ticket-status-badge" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.2rem; border-radius: var(--radius-full); font-weight: 700; font-size: 0.85rem; margin-bottom: 1.5rem; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+          <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+          Entrada Confirmada / Pagamento Aprovado
+        </div>
+
+        <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">
+          Código de Autenticação
+        </div>
+        <div id="ticket-auth-code" style="font-size: 2rem; font-weight: 800; font-family: monospace; color: var(--gold-primary); letter-spacing: 3px; margin-bottom: 1rem;">
+          DAN-78421
+        </div>
+
+        <!-- QR Code para Leitura na Porta -->
+        <div class="ticket-qr-container">
+          <img id="ticket-qr" src="" alt="QR Code Ingresso" class="ticket-qr-img">
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          Apresente este QR Code na entrada da sala do Cinesystem
+        </p>
+
+        <!-- Divisor picotado do Ingresso -->
+        <div class="ticket-divider"></div>
+
+        <!-- Informações do Titular e Sessão -->
+        <div style="text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; font-size: 0.9rem;">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.775rem; text-transform: uppercase;">Titular do Ingresso</span>
+            <div id="ticket-owner" style="font-weight: 700; color: white; font-size: 1rem;">Carregando...</div>
+          </div>
+
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.775rem; text-transform: uppercase;">Documento (CPF)</span>
+            <div id="ticket-cpf" style="font-weight: 700; color: white; font-size: 1rem;">Carregando...</div>
+          </div>
+
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.775rem; text-transform: uppercase;">Data & Horário</span>
+            <div style="font-weight: 700; color: var(--gold-primary); font-size: 1rem;">02/11 às 19h00</div>
+          </div>
+
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.775rem; text-transform: uppercase;">Quantidade</span>
+            <div id="ticket-qty-display" style="font-weight: 700; color: white; font-size: 1rem;">1 Pagante</div>
+          </div>
+        </div>
+
+        <div style="text-align: left; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.08);">
+          <span style="color: var(--text-muted); font-size: 0.775rem; text-transform: uppercase;">Local da Exibição</span>
+          <div style="font-weight: 700; color: white; margin-top: 0.2rem;">
+            Cinesystem - Américas Shopping
+          </div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Av. das Américas, 15.500 - Recreio dos Bandeirantes, Rio de Janeiro - RJ • CEP: 22790-702
+          </div>
+        </div>
+
+        <!-- Alerta de Chegada 30 Minutos e Crianças -->
+        <div class="rules-banner" style="margin-top: 1.75rem; text-align: left;">
+          <div class="rule-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <div>
+              <strong style="color: #fef08a;">⏰ Chegar às 18h30 (30 minutos antes)</strong><br>
+              <small style="color: #cbd5e1;">Evite filas e garanta seus assentos com tranquilidade.</small>
+            </div>
+          </div>
+
+          <div class="rule-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+            </svg>
+            <div>
+              <strong style="color: #fef08a;">👶 Crianças até 3 anos:</strong>
+              <span style="color: #cbd5e1; font-size: 0.85rem;">Isentas de pagamento no colo do responsável.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="no-print" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2rem;">
+          <button type="button" class="btn-primary-cine" onclick="window.print()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Imprimir ou Salvar PDF
+          </button>
+
+          <a id="btn-share-zap" href="#" target="_blank" class="btn-primary-cine" style="background: #25D366; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            </svg>
+            Compartilhar Ingresso no WhatsApp
+          </a>
+
+          <a href="https://maps.google.com/?q=Américas+Shopping+Recreio+Rio+de+Janeiro" target="_blank" rel="noopener" class="btn-primary-cine" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+            Abrir Rota no Google Maps
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api'
+      : '/api';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketId = urlParams.get('id');
+
+      if (!ticketId) {
+        document.getElementById('ticket-owner').textContent = 'Ingresso de Demonstração';
+        document.getElementById('ticket-cpf').textContent = '***.***.***-**';
+        document.getElementById('ticket-auth-code').textContent = 'DAN-' + Math.floor(10000 + Math.random() * 90000);
+        document.getElementById('ticket-qr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=DEMO-INGRESSO-DANIEL';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/tickets/${ticketId}`);
+        if (!res.ok) throw new Error('Não foi possível carregar os dados');
+        const data = await res.json();
+
+        const code = data.ticket_code || 'DAN-' + (data.id ? data.id.substring(0, 6).toUpperCase() : '78421');
+        document.getElementById('ticket-auth-code').textContent = code;
+        document.getElementById('ticket-owner').textContent = data.customer_name || 'Comprador';
+        document.getElementById('ticket-cpf').textContent = data.cpf || 'Não informado';
+
+        const qty = data.quantity || 1;
+        const kids = data.children_under_3 || 0;
+        let qtyText = `${qty} Ingresso${qty > 1 ? 's' : ''} Inteira`;
+        if (kids > 0) qtyText += ` + ${kids} Criança(s) colo`;
+        document.getElementById('ticket-qty-display').textContent = qtyText;
+
+        // QR Code gerado apontando para o próprio link de validação
+        const verifyUrl = `${window.location.origin}/ingresso.html?id=${ticketId}`;
+        document.getElementById('ticket-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verifyUrl)}`;
+
+        // Configura link do WhatsApp
+        const zapText = encodeURIComponent(`Olá! Aqui está meu ingresso para Daniel e a Fornalha Ardente no Cinesystem Américas Shopping (02/11 às 19h). Código: ${code} - Ver Ingresso: ${verifyUrl}`);
+        document.getElementById('btn-share-zap').href = `https://api.whatsapp.com/send?text=${zapText}`;
+
+      } catch (e) {
+        console.warn('Erro ao carregar dados do ingresso:', e);
+      }
+    });
+  </script>
+</body>
+</html>
