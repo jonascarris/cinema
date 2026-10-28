@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel da Portaria & Check-in | Daniel e a Fornalha Ardente</title>
+  <title>Painel da Portaria, Conciliação & Check-in | Daniel e a Fornalha Ardente</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
   <link rel="icon" type="image/jpeg" href="./poster.jpg">
 
   <style>
-    /* Estilos específicos para Mobile, Tablet e Impressão */
+    /* Estilos específicos para Painel de Portaria, Conciliação e Check-in */
     .filter-btn {
       padding: 0.5rem 1rem;
       border-radius: var(--radius-full);
@@ -36,14 +36,15 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 1.25rem;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.85rem;
       transition: var(--transition);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
     .ticket-card-mobile.checked-in {
-      border-color: rgba(16, 185, 129, 0.5);
+      border-color: rgba(16, 185, 129, 0.6);
       background: rgba(16, 185, 129, 0.05);
     }
 
@@ -62,9 +63,70 @@
       justify-content: center;
       gap: 0.5rem;
       box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+      transition: transform 0.1s ease;
     }
     .btn-checkin-touch:active {
       transform: scale(0.98);
+    }
+
+    /* Modal Form Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 1rem;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-dialog {
+      background: #18181b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-lg);
+      max-width: 520px;
+      width: 100%;
+      padding: 1.75rem;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: none; border: none;
+      color: #94a3b8; font-size: 1.5rem;
+      cursor: pointer; line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+
+    .btn-action-sm {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      color: #f1f5f9;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .btn-action-sm:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: var(--gold-primary);
+      color: #fff;
     }
 
     /* Regras de Impressão de Folha Limpa em Preto e Branco */
@@ -73,9 +135,9 @@
         background: #ffffff !important;
         color: #000000 !important;
         padding: 0 !important;
-        font-size: 10pt;
+        font-size: 9pt;
       }
-      .no-print, nav, .cinema-navbar, .cinema-footer, #admin-login-box, .filter-container, .search-container, .stats-container, .print-btn-bar {
+      .no-print, nav, .cinema-navbar, .cinema-footer, #admin-login-box, .filter-container, .search-container, .stats-container, .print-btn-bar, .modal-overlay {
         display: none !important;
       }
       #print-sheet-header {
@@ -91,15 +153,15 @@
         width: 100% !important;
         border-collapse: collapse !important;
         color: #000 !important;
-        margin-top: 1rem;
+        margin-top: 0.5rem;
       }
       table.print-table th, table.print-table td {
         border: 1px solid #333 !important;
-        padding: 6px 8px !important;
+        padding: 5px 6px !important;
         text-align: left !important;
       }
       table.print-table th {
-        background: #eee !important;
+        background: #f1f5f9 !important;
         font-weight: bold;
       }
     }
@@ -119,7 +181,7 @@
         </svg>
       </div>
       <div>
-        <span class="brand-title">Portaria & Check-in</span>
+        <span class="brand-title">Portaria & Conciliação</span>
         <span class="brand-subtitle">Cinesystem Américas Shopping • 02/11 às 19h</span>
       </div>
     </a>
@@ -133,10 +195,10 @@
 
   <!-- Cabeçalho Exclusivo de Impressão -->
   <div id="print-sheet-header">
-    <h2 style="font-size: 16pt; margin-bottom: 4px; text-transform: uppercase;">
+    <h2 style="font-size: 15pt; margin-bottom: 4px; text-transform: uppercase;">
       Lista Oficial de Portaria & Presença - Daniel e a Fornalha Ardente
     </h2>
-    <p style="font-size: 10pt; margin-bottom: 12px; border-bottom: 1px solid #000; padding-bottom: 6px;">
+    <p style="font-size: 9.5pt; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 6px;">
       <strong>Sessão:</strong> 02/11 às 19h00 (Entrada a partir das 18h30) | <strong>Local:</strong> Cinesystem Américas Shopping<br>
       <strong>Data de Emissão da Lista:</strong> <span id="print-date"></span>
     </p>
@@ -149,7 +211,7 @@
       <span class="hero-tag" style="margin-bottom: 0.75rem;">Acesso Restrito</span>
       <h3 class="font-cinematic text-gradient" style="margin-bottom: 0.5rem; font-size: 1.6rem;">Portaria do Cinema</h3>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
-        Área exclusiva dos organizadores para confirmação de presença no tablet/celular e impressão da lista.
+        Área exclusiva dos organizadores para confirmação de presença no tablet/celular e conferência de pagamentos.
       </p>
 
       <form id="admin-login-form">
@@ -182,18 +244,21 @@
       <!-- Barra de Ações: Imprimir & Exportar -->
       <div class="print-btn-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
-          <h2 class="font-cinematic text-gradient" style="font-size: 1.5rem;">Gestão de Ingressos</h2>
-          <p style="color: var(--text-muted); font-size: 0.85rem;">Controle de entrada em tempo real na portaria</p>
+          <h2 class="font-cinematic text-gradient" style="font-size: 1.5rem;">Gestão de Ingressos & Presença</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Controle de portaria com busca em tempo real e conciliação bancária</p>
         </div>
 
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button type="button" class="btn-primary-cine" onclick="window.print()" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; background: rgba(255,255,255,0.15); border: 1px solid var(--gold-primary);">
-            🖨️ Imprimir Lista de Portaria
+          <button type="button" class="btn-primary-cine" id="btn-open-manual-modal" style="padding: 0.6rem 1.1rem; font-size: 0.85rem; width: auto; background: var(--gold-primary); color: #000; font-weight: 700;">
+            + Lançar Ingresso Manual
           </button>
-          <button type="button" class="btn-primary-cine" id="btn-export-csv" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; background: #059669;">
-            📥 Baixar Planilha (CSV)
+          <button type="button" class="btn-primary-cine" onclick="window.print()" style="padding: 0.6rem 1.1rem; font-size: 0.85rem; width: auto; background: rgba(255,255,255,0.15); border: 1px solid var(--gold-primary);">
+            🖨️ Imprimir Lista
           </button>
-          <button type="button" class="btn-primary-cine" id="btn-logout" style="padding: 0.6rem 1rem; font-size: 0.85rem; width: auto; background: transparent; border: 1px solid rgba(255,255,255,0.2);">
+          <button type="button" class="btn-primary-cine" id="btn-export-csv" style="padding: 0.6rem 1.1rem; font-size: 0.85rem; width: auto; background: #059669;">
+            📥 Baixar CSV
+          </button>
+          <button type="button" class="btn-primary-cine" id="btn-logout" style="padding: 0.6rem 0.9rem; font-size: 0.85rem; width: auto; background: transparent; border: 1px solid rgba(255,255,255,0.2);">
             Sair
           </button>
         </div>
@@ -230,14 +295,15 @@
       <!-- Busca e Filtros Rápidos (Touch-friendly para celular/tablet) -->
       <div class="search-container info-card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
         <div style="position: relative; margin-bottom: 1rem;">
-          <input type="text" id="admin-search" class="form-input" placeholder="🔍 Digite Nome, CPF ou Código (ex: DAN-...) para busca rápida" style="font-size: 1.05rem; padding: 0.9rem 1.2rem;">
+          <input type="text" id="admin-search" class="form-input" placeholder="🔍 Digite Nome, CPF, Código (ex: DAN-...) ou ID MP para busca instantânea" style="font-size: 1.05rem; padding: 0.9rem 1.2rem;">
         </div>
 
-        <div class="filter-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="filter-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
           <button type="button" class="filter-btn active" data-filter="all">Todos (<span id="count-all">0</span>)</button>
           <button type="button" class="filter-btn" data-filter="pending">Aguardando Entrada (<span id="count-pending">0</span>)</button>
           <button type="button" class="filter-btn" data-filter="checked">Já Entraram (<span id="count-checked">0</span>)</button>
-          <button type="button" class="filter-btn" id="btn-refresh" style="margin-left: auto;">🔄 Atualizar</button>
+          <button type="button" class="filter-btn" id="btn-toggle-view" style="margin-left: auto;">📱 Modo Tabela/Cards</button>
+          <button type="button" class="filter-btn" id="btn-refresh">🔄 Atualizar</button>
         </div>
       </div>
 
@@ -246,7 +312,7 @@
 
       <!-- Tabela para Desktop -->
       <div id="desktop-table-container" class="info-card" style="overflow-x: auto; padding: 1rem; display: none;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
           <thead>
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
               <th style="padding: 0.75rem;">Código</th>
@@ -254,8 +320,9 @@
               <th style="padding: 0.75rem;">CPF / Contato</th>
               <th style="padding: 0.75rem;">Qtd.</th>
               <th style="padding: 0.75rem;">Valor</th>
-              <th style="padding: 0.75rem;">Status Pagamento</th>
-              <th style="padding: 0.75rem; text-align: center;">Presença na Porta</th>
+              <th style="padding: 0.75rem;">Pagamento & Conciliação MP</th>
+              <th style="padding: 0.75rem; text-align: center;">Presença</th>
+              <th style="padding: 0.75rem; text-align: center;">Ações</th>
             </tr>
           </thead>
           <tbody id="desktop-table-body"></tbody>
@@ -273,6 +340,7 @@
               <th>Telefone</th>
               <th style="text-align: center;">Qtd</th>
               <th>Código</th>
+              <th>ID Transação / Conciliação</th>
               <th style="width: 120px;">Assinatura / Visto</th>
             </tr>
           </thead>
@@ -282,6 +350,132 @@
 
     </div>
 
+  </div>
+
+  <!-- Modal de Edição de Nome / Dados do Comprador -->
+  <div class="modal-overlay" id="edit-ticket-modal">
+    <div class="modal-dialog">
+      <button type="button" class="modal-close" id="btn-close-edit-modal">&times;</button>
+      <span class="hero-tag" style="margin-bottom: 0.5rem;">Editar Ingresso</span>
+      <h3 class="font-cinematic text-gradient" style="font-size: 1.4rem; margin-bottom: 0.5rem;" id="edit-modal-title">
+        Alterar Nome do Comprador
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Atualize o nome ou documentos para localizar com facilidade no momento da entrada.
+      </p>
+
+      <form id="edit-ticket-form">
+        <input type="hidden" id="edit-ticket-id">
+
+        <div class="form-group">
+          <label class="form-label">Nome Completo do Titular *</label>
+          <input type="text" id="edit-cust-name" class="form-input" required placeholder="Ex: Maria da Silva">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">CPF</label>
+            <input type="text" id="edit-cust-cpf" class="form-input" placeholder="000.000.000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">WhatsApp / Telefone</label>
+            <input type="text" id="edit-cust-phone" class="form-input" placeholder="(21) 99999-9999">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" id="edit-cust-email" class="form-input" placeholder="email@exemplo.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observações / Anotações</label>
+          <input type="text" id="edit-cust-notes" class="form-input" placeholder="Ex: Pagamento confirmado via comprovante WhatsApp">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn-primary-cine" style="flex: 1;">
+            Salvar Alterações
+          </button>
+          <button type="button" class="btn-primary-cine" id="btn-cancel-edit" style="width: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Lançamento de Ingresso Manual -->
+  <div class="modal-overlay" id="manual-ticket-modal">
+    <div class="modal-dialog">
+      <button type="button" class="modal-close" id="btn-close-manual-modal">&times;</button>
+      <span class="hero-tag" style="margin-bottom: 0.5rem;">Lançamento Manual</span>
+      <h3 class="font-cinematic text-gradient" style="font-size: 1.4rem; margin-bottom: 0.5rem;">
+        Cadastrar Ingresso Manualmente
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Use para pessoas que pagaram por PIX direto na chave da igreja, em dinheiro, ou cortesias.
+      </p>
+
+      <form id="manual-ticket-form">
+        <div class="form-group">
+          <label class="form-label">Nome Completo do Titular *</label>
+          <input type="text" id="manual-cust-name" class="form-input" required placeholder="Ex: João Souza">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">CPF</label>
+            <input type="text" id="manual-cust-cpf" class="form-input" placeholder="000.000.000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">WhatsApp / Telefone</label>
+            <input type="text" id="manual-cust-phone" class="form-input" placeholder="(21) 99999-9999">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">Quantidade de Ingressos (R$ 27)</label>
+            <input type="number" id="manual-qty" class="form-input" min="1" max="50" value="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Crianças até 3 anos (isentas)</label>
+            <input type="number" id="manual-kids" class="form-input" min="0" max="10" value="0">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">Forma de Pagamento</label>
+            <select id="manual-payment-method" class="form-input" style="background: var(--bg-input); color: #fff;">
+              <option value="pix_direto">PIX Direto / Chave</option>
+              <option value="dinheiro">Dinheiro em mãos</option>
+              <option value="cartao_maquininha">Cartão (Maquininha)</option>
+              <option value="cortesia">Cortesia / Isento</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor Total (R$)</label>
+            <input type="number" step="0.01" id="manual-total-amount" class="form-input" value="27.00">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <input type="text" id="manual-notes" class="form-input" placeholder="Ex: Pago direto para o organizador">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn-primary-cine" style="flex: 1;">
+            Salvar e Emitir Ingresso
+          </button>
+          <button type="button" class="btn-primary-cine" id="btn-cancel-manual" style="width: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <footer class="cinema-footer no-print" style="margin-top: 3rem; padding: 2rem 0;">
@@ -300,6 +494,24 @@
     let currentPassword = '';
     let rawTickets = [];
     let currentFilter = 'all';
+    let forceTableView = window.innerWidth >= 900;
+
+    // Persistência local de nomes editados e manuais para garantir retenção mesmo em cold starts
+    function getStoredLocalOverrides() {
+      try {
+        return JSON.parse(localStorage.getItem('cinema_ticket_overrides') || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveLocalOverride(id, data) {
+      try {
+        const current = getStoredLocalOverrides();
+        current[id] = { ...(current[id] || {}), ...data };
+        localStorage.setItem('cinema_ticket_overrides', JSON.stringify(current));
+      } catch (e) {}
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('print-date').textContent = new Date().toLocaleString('pt-BR');
@@ -313,6 +525,7 @@
       }
 
       initEventListeners();
+      initModals();
     });
 
     function initEventListeners() {
@@ -334,13 +547,19 @@
         location.reload();
       });
 
-      // Busca
+      // Busca Instantânea
       document.getElementById('admin-search').addEventListener('input', applyFilters);
 
       // Botão Atualizar
       document.getElementById('btn-refresh').addEventListener('click', loadTickets);
 
-      // Filtros
+      // Alternar Modo Tabela/Cards
+      document.getElementById('btn-toggle-view').addEventListener('click', () => {
+        forceTableView = !forceTableView;
+        applyFilters();
+      });
+
+      // Filtros de Aba
       document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
@@ -352,6 +571,131 @@
 
       // Exportar CSV
       document.getElementById('btn-export-csv').addEventListener('click', exportToCSV);
+
+      // Quantidade no form manual recalcula valor total
+      document.getElementById('manual-qty').addEventListener('input', (e) => {
+        const q = parseInt(e.target.value, 10) || 1;
+        document.getElementById('manual-total-amount').value = (q * 27.00).toFixed(2);
+      });
+    }
+
+    function initModals() {
+      // Modal Editar
+      const editModal = document.getElementById('edit-ticket-modal');
+      const closeEdit = () => editModal.classList.remove('active');
+      document.getElementById('btn-close-edit-modal').addEventListener('click', closeEdit);
+      document.getElementById('btn-cancel-edit').addEventListener('click', closeEdit);
+
+      document.getElementById('edit-ticket-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-ticket-id').value;
+        const name = document.getElementById('edit-cust-name').value.trim();
+        const cpf = document.getElementById('edit-cust-cpf').value.trim();
+        const phone = document.getElementById('edit-cust-phone').value.trim();
+        const email = document.getElementById('edit-cust-email').value.trim();
+        const notes = document.getElementById('edit-cust-notes').value.trim();
+
+        // 1. Salva localmente para persistência imediata
+        saveLocalOverride(id, { customer_name: name, cpf, phone, email, notes });
+
+        // 2. Atualiza em rawTickets
+        const t = rawTickets.find(item => item.id === id || item.order_id === id);
+        if (t) {
+          t.customer_name = name;
+          if (cpf) t.cpf = cpf;
+          if (phone) t.phone = phone;
+          if (email) t.email = email;
+          if (notes) t.notes = notes;
+        }
+
+        closeEdit();
+        updateStats();
+        applyFilters();
+        renderPrintTable();
+
+        // 3. Sincroniza com o servidor
+        try {
+          await fetch(`${API_BASE_URL}/admin/tickets/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'x-admin-password': currentPassword },
+            body: JSON.stringify({ password: currentPassword, customer_name: name, cpf, phone, email, notes })
+          });
+        } catch (err) {
+          console.warn('Erro ao sincronizar com backend:', err);
+        }
+      });
+
+      // Modal Manual
+      const manualModal = document.getElementById('manual-ticket-modal');
+      const closeManual = () => manualModal.classList.remove('active');
+      document.getElementById('btn-open-manual-modal').addEventListener('click', () => {
+        manualModal.classList.add('active');
+      });
+      document.getElementById('btn-close-manual-modal').addEventListener('click', closeManual);
+      document.getElementById('btn-cancel-manual').addEventListener('click', closeManual);
+
+      document.getElementById('manual-ticket-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('manual-cust-name').value.trim();
+        const cpf = document.getElementById('manual-cust-cpf').value.trim();
+        const phone = document.getElementById('manual-cust-phone').value.trim();
+        const qty = parseInt(document.getElementById('manual-qty').value, 10) || 1;
+        const kids = parseInt(document.getElementById('manual-kids').value, 10) || 0;
+        const amount = parseFloat(document.getElementById('manual-total-amount').value) || (qty * 27);
+        const paymentMethod = document.getElementById('manual-payment-method').value;
+        const notes = document.getElementById('manual-notes').value.trim();
+
+        try {
+          const res = await fetch(`${API_BASE_URL}/admin/tickets/manual`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-password': currentPassword },
+            body: JSON.stringify({
+              password: currentPassword,
+              customer_name: name,
+              cpf,
+              phone,
+              quantity: qty,
+              children_under_3: kids,
+              total_amount: amount,
+              payment_method: paymentMethod,
+              notes
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success && data.ticket) {
+            saveLocalOverride(data.ticket.id, data.ticket);
+            rawTickets.push(data.ticket);
+            closeManual();
+            document.getElementById('manual-ticket-form').reset();
+            document.getElementById('manual-qty').value = 1;
+            document.getElementById('manual-total-amount').value = '27.00';
+            updateStats();
+            applyFilters();
+            renderPrintTable();
+            alert('Ingresso manual cadastrado com sucesso!');
+          } else {
+            alert(data.error || 'Erro ao cadastrar ingresso.');
+          }
+        } catch (err) {
+          alert('Erro de comunicação: ' + err.message);
+        }
+      });
+    }
+
+    function openEditModal(id) {
+      const ticket = rawTickets.find(t => t.id === id || t.order_id === id);
+      if (!ticket) return;
+
+      document.getElementById('edit-ticket-id').value = id;
+      document.getElementById('edit-cust-name').value = ticket.customer_name || '';
+      document.getElementById('edit-cust-cpf').value = ticket.cpf !== '-' ? (ticket.cpf || '') : '';
+      document.getElementById('edit-cust-phone').value = ticket.phone !== '-' ? (ticket.phone || '') : '';
+      document.getElementById('edit-cust-email').value = ticket.email !== '-' ? (ticket.email || '') : '';
+      document.getElementById('edit-cust-notes').value = ticket.notes || '';
+      document.getElementById('edit-modal-title').textContent = `Editar: ${ticket.ticket_code || 'Ingresso'}`;
+
+      document.getElementById('edit-ticket-modal').classList.add('active');
     }
 
     async function loadTickets() {
@@ -368,6 +712,27 @@
 
         const data = await res.json();
         rawTickets = data.tickets || [];
+
+        // Aplica overrides locais armazenados para persistência imediata
+        const localOverrides = getStoredLocalOverrides();
+        rawTickets.forEach(t => {
+          const ov = localOverrides[t.id] || localOverrides[t.order_id];
+          if (ov) {
+            if (ov.customer_name) t.customer_name = ov.customer_name;
+            if (ov.cpf && ov.cpf !== '-') t.cpf = ov.cpf;
+            if (ov.phone && ov.phone !== '-') t.phone = ov.phone;
+            if (ov.email && ov.email !== '-') t.email = ov.email;
+            if (ov.notes) t.notes = ov.notes;
+          }
+        });
+
+        // Adiciona manuais locais que porventura não estejam na resposta
+        Object.keys(localOverrides).forEach(ovId => {
+          const item = localOverrides[ovId];
+          if (item && item.is_manual && !rawTickets.some(t => t.id === ovId)) {
+            rawTickets.push(item);
+          }
+        });
 
         // Ordena por nome em ordem alfabética para facilitar a busca e a lista impressa
         rawTickets.sort((a, b) => (a.customer_name || '').localeCompare(b.customer_name || ''));
@@ -394,17 +759,21 @@
       let countPending = 0;
 
       rawTickets.forEach(item => {
+        // Contabiliza apenas se aprovado ou se for manual
+        const isApproved = item.mp_status === 'approved';
         const qty = item.quantity || 1;
         const kids = item.children_under_3 || 0;
         const rev = Number(item.total_amount) || (qty * 27.00);
 
-        totalTickets += qty;
-        totalKids += kids;
-        totalRevenue += rev;
+        if (isApproved) {
+          totalTickets += qty;
+          totalKids += kids;
+          totalRevenue += rev;
+        }
 
         const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
         if (isChecked) {
-          checkins += qty;
+          if (isApproved) checkins += qty;
           countChecked++;
         } else {
           countPending++;
@@ -439,12 +808,26 @@
           (item.cpf && item.cpf.includes(q)) ||
           (item.phone && item.phone.includes(q)) ||
           (item.ticket_code && item.ticket_code.toLowerCase().includes(q)) ||
-          (item.id && item.id.toLowerCase().includes(q))
+          (item.id && item.id.toLowerCase().includes(q)) ||
+          (item.e2e_id && item.e2e_id.toLowerCase().includes(q)) ||
+          (item.mp_payment_id && item.mp_payment_id.includes(q)) ||
+          (item.bank_name && item.bank_name.toLowerCase().includes(q))
         );
       });
 
       renderMobileCards(filtered);
       renderDesktopTable(filtered);
+
+      const desktopContainer = document.getElementById('desktop-table-container');
+      const mobileContainer = document.getElementById('mobile-cards-container');
+
+      if (forceTableView) {
+        desktopContainer.style.display = 'block';
+        mobileContainer.style.display = 'none';
+      } else {
+        desktopContainer.style.display = 'none';
+        mobileContainer.style.display = 'block';
+      }
     }
 
     function renderMobileCards(list) {
@@ -465,28 +848,40 @@
         const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
         const qty = item.quantity || 1;
         const kids = item.children_under_3 || 0;
+        const isApproved = item.mp_status === 'approved';
 
         const card = document.createElement('div');
         card.className = `ticket-card-mobile ${isChecked ? 'checked-in' : ''}`;
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
             <div>
-              <span style="font-family: monospace; font-weight: 800; color: var(--gold-primary); font-size: 0.95rem;">${code}</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-family: monospace; font-weight: 800; color: var(--gold-primary); font-size: 0.95rem;">${code}</span>
+                ${item.is_manual ? `<span style="font-size: 0.65rem; background: #6366f1; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 700;">MANUAL</span>` : ''}
+              </div>
               <h3 style="font-size: 1.15rem; margin-top: 0.2rem; color: #fff;">${item.customer_name || 'Comprador'}</h3>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem;">
-              <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-weight: 700; background: ${item.mp_status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${item.mp_status === 'approved' ? '#10b981' : '#f87171'};">
-                ${item.mp_status === 'approved' ? '✓ Pago (' + (item.payment_method ? item.payment_method.toUpperCase() : 'PIX') + ')' : '⏳ Aguardando Pagamento'}
+              <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-weight: 700; background: ${isApproved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${isApproved ? '#10b981' : '#f87171'};">
+                ${isApproved ? '✓ ' + (item.payment_method ? item.payment_method.toUpperCase() : 'PAGO') : '⏳ Aguardando Pagamento'}
               </span>
               <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-weight: 700; background: ${isChecked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isChecked ? '#10b981' : '#f59e0b'};">
-                ${isChecked ? '✓ Na Sala' : 'Portaria'}
+                ${isChecked ? '✓ Entrada Confirmada' : 'Aguardando Entrada'}
               </span>
             </div>
           </div>
 
-          <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #cbd5e1; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.75rem 1.25rem; font-size: 0.85rem; color: #cbd5e1; flex-wrap: wrap; background: rgba(0,0,0,0.25); padding: 0.6rem 0.75rem; border-radius: var(--radius-sm);">
             <span>📄 CPF: <strong>${item.cpf || 'Não informado'}</strong></span>
             <span>📱 Tel: <strong>${item.phone || 'Não informado'}</strong></span>
+            ${item.notes ? `<span style="color: #fef08a; width: 100%;">📝 Obs: ${item.notes}</span>` : ''}
+          </div>
+
+          <!-- Conciliação Bancária & Detalhes MP -->
+          <div style="font-size: 0.75rem; color: #94a3b8; border-left: 2px solid var(--gold-primary); padding-left: 0.5rem;">
+            <span>ID Pagamento MP: <strong style="font-family: monospace; color: #f1f5f9;">${item.mp_payment_id || item.id}</strong></span><br>
+            ${item.bank_name ? `<span>Banco de Origem: <strong>${item.bank_name}</strong></span><br>` : ''}
+            ${item.e2e_id ? `<span>PIX E2E: <strong style="font-family: monospace; font-size: 0.7rem; color: #cbd5e1;">${item.e2e_id}</strong></span>` : ''}
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.9rem;">
@@ -494,9 +889,14 @@
               <strong>${qty}x Inteira (R$ ${(qty * 27).toFixed(2).replace('.', ',')})</strong>
               ${kids > 0 ? `<br><small style="color: #fef08a;">+ ${kids} Criança(s) até 3 anos (isenta)</small>` : ''}
             </div>
-            <a href="./ingresso.html?id=${item.id}" target="_blank" style="color: var(--gold-primary); font-size: 0.8rem; text-decoration: underline;">
-              Ver Ingresso
-            </a>
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" class="btn-action-sm" onclick="openEditModal('${item.id}')">
+                ✏️ Editar
+              </button>
+              <a href="./ingresso.html?id=${item.id}" target="_blank" class="btn-action-sm" style="text-decoration: none;">
+                🎫 Ingresso
+              </a>
+            </div>
           </div>
 
           <div style="margin-top: 0.25rem;">
@@ -524,18 +924,23 @@
         const isChecked = item.checkin_done || (item.shipping_status && item.shipping_status.includes('Check-in'));
         const qty = item.quantity || 1;
         const kids = item.children_under_3 || 0;
+        const isApproved = item.mp_status === 'approved';
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
         tr.innerHTML = `
-          <td style="padding: 0.75rem;"><strong style="font-family: monospace; color: var(--gold-primary);">${code}</strong></td>
           <td style="padding: 0.75rem;">
-            <strong>${item.customer_name || 'Comprador'}</strong><br>
-            <small style="color: var(--text-muted);">${item.email || ''}</small>
+            <strong style="font-family: monospace; color: var(--gold-primary);">${code}</strong>
+            ${item.is_manual ? `<br><span style="font-size: 0.65rem; background: #6366f1; color: white; padding: 1px 4px; border-radius: 3px;">MANUAL</span>` : ''}
+          </td>
+          <td style="padding: 0.75rem;">
+            <strong style="color: white; font-size: 0.95rem;">${item.customer_name || 'Comprador'}</strong><br>
+            <small style="color: var(--text-muted);">${item.email && item.email !== '-' ? item.email : ''}</small>
+            ${item.notes ? `<br><small style="color: #fef08a;">Obs: ${item.notes}</small>` : ''}
           </td>
           <td style="padding: 0.75rem;">
             ${item.cpf || 'Não informado'}<br>
-            <small style="color: var(--text-muted);">${item.phone || ''}</small>
+            <small style="color: #38bdf8;">${item.phone || ''}</small>
           </td>
           <td style="padding: 0.75rem;">
             <strong>${qty}</strong>
@@ -544,19 +949,36 @@
           <td style="padding: 0.75rem; color: var(--gold-primary); font-weight: 700;">
             R$ ${(Number(item.total_amount) || (qty * 27)).toFixed(2).replace('.', ',')}
           </td>
-          <td style="padding: 0.75rem;">
-            <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); background: ${item.mp_status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${item.mp_status === 'approved' ? '#10b981' : '#f87171'};">
-              ${item.mp_status === 'approved' ? '✓ ' + (item.payment_method ? item.payment_method.toUpperCase() : 'PAGO') : 'Pendente'}
+          <td style="padding: 0.75rem; font-size: 0.8rem;">
+            <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); background: ${isApproved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${isApproved ? '#10b981' : '#f87171'}; font-weight: 700;">
+              ${isApproved ? '✓ ' + (item.payment_method ? item.payment_method.toUpperCase() : 'PAGO') : 'Pendente'}
             </span>
+            <div style="margin-top: 0.25rem; font-size: 0.72rem; color: #94a3b8;">
+              ID MP: <span style="font-family: monospace; color: #e2e8f0;">${item.mp_payment_id || item.id}</span>
+              ${item.bank_name ? `<br>Banco: ${item.bank_name}` : ''}
+              ${item.e2e_id ? `<br>E2E: <span style="font-family: monospace; font-size: 0.68rem;">${item.e2e_id}</span>` : ''}
+            </div>
           </td>
           <td style="padding: 0.75rem; text-align: center;">
             ${isChecked ? `
-              <span style="color: #10b981; font-weight: 700; font-size: 0.85rem;">✓ Entrada Confirmada</span>
+              <button type="button" class="btn-action-sm" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;" onclick="toggleCheckin('${item.id}', false)">
+                ✓ Entrada Confirmada
+              </button>
             ` : `
               <button type="button" class="btn-primary-cine" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; width: auto;" onclick="toggleCheckin('${item.id}', true)">
                 Confirmar
               </button>
             `}
+          </td>
+          <td style="padding: 0.75rem; text-align: center;">
+            <div style="display: flex; gap: 0.35rem; justify-content: center;">
+              <button type="button" class="btn-action-sm" onclick="openEditModal('${item.id}')" title="Alterar Nome / CPF">
+                ✏️
+              </button>
+              <a href="./ingresso.html?id=${item.id}" target="_blank" class="btn-action-sm" title="Visualizar Ingresso Digital">
+                🎫
+              </a>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -574,12 +996,13 @@
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td style="text-align: center; font-size: 14pt;">[  ]</td>
-          <td><strong>${item.customer_name || 'Comprador'}</strong></td>
+          <td style="text-align: center; font-size: 13pt;">[  ]</td>
+          <td><strong>${item.customer_name || 'Comprador'}</strong> ${item.notes ? `(${item.notes})` : ''}</td>
           <td>${item.cpf || '-'}</td>
           <td>${item.phone || '-'}</td>
           <td style="text-align: center;"><strong>${qty}</strong> ${kids > 0 ? `(+${kids} colo)` : ''}</td>
           <td style="font-family: monospace;">${code}</td>
+          <td style="font-family: monospace; font-size: 8pt;">${item.mp_payment_id || item.id} ${item.bank_name ? '(' + item.bank_name + ')' : ''}</td>
           <td></td>
         `;
         tbody.appendChild(tr);
@@ -597,11 +1020,12 @@
         const data = await res.json();
         if (res.ok && data.success) {
           // Atualiza localmente para resposta ultra rápida sem delay
-          const target = rawTickets.find(t => t.id === id);
+          const target = rawTickets.find(t => t.id === id || t.order_id === id);
           if (target) {
             target.checkin_done = status;
             target.shipping_status = status ? 'Check-in Realizado' : 'Pendente';
           }
+          saveLocalOverride(id, { checkin_done: status });
           updateStats();
           applyFilters();
         } else {
@@ -618,18 +1042,18 @@
         return;
       }
 
-      let csv = 'Código;Nome Comprador;CPF;Telefone;E-mail;Qtd Ingressos;Criancas Colo;Valor Total;Check-in Realizado\n';
+      let csv = 'Código;Nome Comprador;CPF;Telefone;E-mail;Qtd Ingressos;Criancas Colo;Valor Total;Metodo;ID Mercado Pago;PIX E2E;Banco;Check-in Realizado;Observacoes\n';
       rawTickets.forEach(t => {
         const code = t.ticket_code || 'DAN-' + (t.id ? t.id.substring(0, 5).toUpperCase() : '');
         const isChecked = t.checkin_done || (t.shipping_status && t.shipping_status.includes('Check-in')) ? 'SIM' : 'NÃO';
-        csv += `"${code}";"${t.customer_name || ''}";"${t.cpf || ''}";"${t.phone || ''}";"${t.email || ''}";"${t.quantity || 1}";"${t.children_under_3 || 0}";"R$ ${(Number(t.total_amount) || (t.quantity || 1) * 27).toFixed(2)}";"${isChecked}"\n`;
+        csv += `"${code}";"${t.customer_name || ''}";"${t.cpf || ''}";"${t.phone || ''}";"${t.email || ''}";"${t.quantity || 1}";"${t.children_under_3 || 0}";"R$ ${(Number(t.total_amount) || (t.quantity || 1) * 27).toFixed(2)}";"${t.payment_method || ''}";"${t.mp_payment_id || t.id}";"${t.e2e_id || ''}";"${t.bank_name || ''}";"${isChecked}";"${t.notes || ''}"\n`;
       });
 
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', `lista_ingressos_cinema_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute('download', `lista_conciliada_cinema_${new Date().toISOString().slice(0,10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

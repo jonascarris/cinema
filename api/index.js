@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, '..')));
 
 const PORT = process.env.PORT || 5000;
 
-// Credenciais Mercado Pago herdadas de praCamilaMiguel
+// Credenciais Mercado Pago
 const OFFICIAL_MP_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
 const OFFICIAL_MP_PUBLIC_KEY = process.env.MERCADO_PAGO_PUBLIC_KEY || '';
 
@@ -41,6 +41,7 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 // Armazenamento em memória (para a sessão/instância ativa)
 const memoryOrders = new Map();
 const checkinStatusMap = new Map();
+const ticketOverrides = new Map(); // Permite editar comprador, CPF, telefone ou adicionar manuais
 
 // Helper para gerar código amigável de ingresso
 function generateFriendlyCode() {
@@ -470,17 +471,21 @@ async function fetchTicketsFromMercadoPago() {
 
       // Identificação específica dos pagamentos iniciais realizados via PIX
       if (String(p.id) === '186572981404') {
-        custName = 'Dulcinéa S Andrade';
-        custEmail = 'dusiandrade@gmail.com';
-        custPhone = '(21) 99961-5470';
-        custCpf = '803.689.487-49';
-      } else if (String(p.id) === '186475844980') {
-        custName = 'Comprador Pix (Itaú)';
+        custName = custName || 'Dulcinéa S Andrade';
+        custEmail = custEmail || 'dusiandrade@gmail.com';
+        custPhone = custPhone || '(21) 99961-5470';
+        custCpf = custCpf || '803.689.487-49';
       }
 
       if (!ticketCode) {
         ticketCode = 'DAN-' + String(p.id).slice(-5);
       }
+
+      // Identificadores de Conciliação Bancária
+      const mpPaymentId = String(p.id);
+      const e2eId = p.point_of_interaction?.transaction_data?.transaction_id || null;
+      const bankTransferId = p.point_of_interaction?.transaction_data?.bank_transfer_id || null;
+      const bankName = p.point_of_interaction?.transaction_data?.bank_info?.payer?.long_name || null;
 
       const qty = Math.max(1, Math.round(Number(p.transaction_amount) / TICKET_PRICE));
       const isChecked = checkinStatusMap.get(String(p.id)) || checkinStatusMap.get(extRef) || false;
@@ -504,7 +509,12 @@ async function fetchTicketsFromMercadoPago() {
         movie_title: MOVIE_TITLE,
         session_datetime: SESSION_DATETIME,
         theater_name: THEATER_NAME,
-        theater_address: THEATER_ADDRESS
+        theater_address: THEATER_ADDRESS,
+        mp_payment_id: mpPaymentId,
+        e2e_id: e2eId,
+        bank_transfer_id: bankTransferId,
+        bank_name: bankName,
+        is_manual: false
       });
     }
 
@@ -524,7 +534,9 @@ app.get('/api/tickets/:id', async (req, res) => {
 
   // 1. Procura em memória
   if (memoryOrders.has(id)) {
-    return res.json(memoryOrders.get(id));
+    const t = memoryOrders.get(id);
+    const ov = ticketOverrides.get(id) || ticketOverrides.get(t.mp_payment_id) || {};
+    return res.json({ ...t, ...ov });
   }
 
   // 2. Procura no Mercado Pago
@@ -532,7 +544,8 @@ app.get('/api/tickets/:id', async (req, res) => {
     const mpTickets = await fetchTicketsFromMercadoPago();
     const found = mpTickets.find(t => t.id === id || t.order_id === id || t.ticket_code === id);
     if (found) {
-      return res.json(found);
+      const ov = ticketOverrides.get(found.id) || ticketOverrides.get(found.order_id) || {};
+      return res.json({ ...found, ...ov });
     }
   } catch (e) {
     console.warn('[Ticket Lookup MP Error]:', e.message);
@@ -558,11 +571,17 @@ app.get('/api/tickets/:id', async (req, res) => {
           created_at: data.created_at,
           details: data.complement || data.shipping_service_name
         };
-        return res.json(parsed);
+        const ov = ticketOverrides.get(data.id) || {};
+        return res.json({ ...parsed, ...ov });
       }
     } catch (err) {
       console.warn('[Ticket Lookup Supabase Error]:', err.message);
     }
+  }
+
+  // 4. Procura em manuais
+  if (ticketOverrides.has(id)) {
+    return res.json(ticketOverrides.get(id));
   }
 
   return res.status(404).json({ error: 'Ingresso não encontrado.' });
@@ -589,6 +608,12 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
     memoryOrders.set(id, ord);
   }
 
+  if (ticketOverrides.has(id)) {
+    const ov = ticketOverrides.get(id);
+    ov.checkin_done = isCheckin;
+    ticketOverrides.set(id, ov);
+  }
+
   if (supabase) {
     try {
       await supabase.from('orders').update({
@@ -606,7 +631,98 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 5. LISTAGEM DE INGRESSOS PARA O ADMIN (MERCADO PAGO EM TEMPO REAL)
+// 5. ATUALIZAR / EDITAR DADOS DE UM INGRESSO
+// -------------------------------------------------------------
+app.put('/api/admin/tickets/:id', async (req, res) => {
+  const pwd = req.headers['x-admin-password'] || req.body.password;
+  if (pwd !== (process.env.ADMIN_PASSWORD || 'laranjachurrasco')) {
+    return res.status(401).json({ error: 'Não autorizado.' });
+  }
+
+  const { id } = req.params;
+  const { customer_name, cpf, phone, email, notes } = req.body;
+
+  const current = ticketOverrides.get(id) || {};
+  const updated = {
+    ...current,
+    id: id,
+    customer_name: customer_name ? customer_name.trim() : current.customer_name,
+    cpf: cpf !== undefined ? cpf.trim() : current.cpf,
+    phone: phone !== undefined ? phone.trim() : current.phone,
+    email: email !== undefined ? email.trim() : current.email,
+    notes: notes !== undefined ? notes.trim() : current.notes,
+    updated_at: new Date().toISOString()
+  };
+
+  ticketOverrides.set(id, updated);
+
+  // Também atualiza se existir em memória
+  if (memoryOrders.has(id)) {
+    const mem = memoryOrders.get(id);
+    Object.assign(mem, updated);
+    memoryOrders.set(id, mem);
+  }
+
+  return res.json({ success: true, message: 'Ingresso atualizado com sucesso!', ticket: updated });
+});
+
+// -------------------------------------------------------------
+// 6. INSERIR INGRESSO MANUALMENTE (PAGO EM MÃOS / CORTESIA / PIX DIRETO)
+// -------------------------------------------------------------
+app.post('/api/admin/tickets/manual', async (req, res) => {
+  const pwd = req.headers['x-admin-password'] || req.body.password;
+  if (pwd !== (process.env.ADMIN_PASSWORD || 'laranjachurrasco')) {
+    return res.status(401).json({ error: 'Não autorizado.' });
+  }
+
+  const { customer_name, cpf = '', phone = '', email = '', quantity = 1, children_under_3 = 0, total_amount, payment_method = 'manual_pix', notes = '' } = req.body;
+
+  if (!customer_name) {
+    return res.status(400).json({ error: 'Nome do comprador é obrigatório.' });
+  }
+
+  const qty = Math.max(1, parseInt(quantity, 10));
+  const kids = Math.max(0, parseInt(children_under_3, 10) || 0);
+  const amount = total_amount ? Number(total_amount) : Number((qty * TICKET_PRICE).toFixed(2));
+  const newId = 'MANUAL-' + Date.now().toString(36).toUpperCase();
+  const ticketCode = generateFriendlyCode();
+
+  const newTicket = {
+    id: newId,
+    order_id: newId,
+    ticket_code: ticketCode,
+    customer_name: customer_name.trim(),
+    cpf: cpf.trim() || '-',
+    phone: phone.trim() || '-',
+    email: email.trim().toLowerCase() || '-',
+    quantity: qty,
+    children_under_3: kids,
+    total_amount: amount,
+    mp_status: 'approved',
+    mp_status_detail: 'accredited_manual',
+    payment_method: payment_method,
+    date_created: new Date().toISOString(),
+    checkin_done: false,
+    movie_title: MOVIE_TITLE,
+    session_datetime: SESSION_DATETIME,
+    theater_name: THEATER_NAME,
+    theater_address: THEATER_ADDRESS,
+    mp_payment_id: newId,
+    e2e_id: null,
+    bank_transfer_id: null,
+    bank_name: 'Lançamento Manual',
+    is_manual: true,
+    notes: notes
+  };
+
+  ticketOverrides.set(newId, newTicket);
+  memoryOrders.set(newId, newTicket);
+
+  return res.json({ success: true, message: 'Ingresso manual cadastrado com sucesso!', ticket: newTicket });
+});
+
+// -------------------------------------------------------------
+// 7. LISTAGEM DE INGRESSOS PARA O ADMIN (MERCADO PAGO EM TEMPO REAL)
 // -------------------------------------------------------------
 app.get('/api/admin/tickets', async (req, res) => {
   const pwd = req.headers['x-admin-password'] || req.query.password;
@@ -635,8 +751,24 @@ app.get('/api/admin/tickets', async (req, res) => {
       }
     }
 
-    // 3. Recupera tickets únicos
+    // 3. Aplica overrides (edições de nome/dados ou ingressos manuais)
+    for (const [ovId, ovData] of ticketOverrides.entries()) {
+      if (allTicketsMap.has(ovId)) {
+        const orig = allTicketsMap.get(ovId);
+        allTicketsMap.set(ovId, { ...orig, ...ovData });
+      } else {
+        allTicketsMap.set(ovId, ovData);
+      }
+    }
+
+    // 4. Recupera tickets únicos
     const uniqueTickets = Array.from(new Set(allTicketsMap.values()));
+
+    // Aplica check-in status atualizado
+    uniqueTickets.forEach(t => {
+      if (checkinStatusMap.has(t.id)) t.checkin_done = checkinStatusMap.get(t.id);
+      if (t.order_id && checkinStatusMap.has(t.order_id)) t.checkin_done = checkinStatusMap.get(t.order_id);
+    });
 
     return res.json({ tickets: uniqueTickets });
 
@@ -647,7 +779,7 @@ app.get('/api/admin/tickets', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 6. WEBHOOK DO MERCADO PAGO
+// 8. WEBHOOK DO MERCADO PAGO
 // -------------------------------------------------------------
 app.post('/api/webhooks/mercadopago', async (req, res) => {
   try {
