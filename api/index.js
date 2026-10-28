@@ -33,13 +33,14 @@ const SESSION_RECOMMENDATION = 'Chegar com 30 minutos de antecedência (às 18h3
 const THEATER_NAME = 'Cinesystem - Américas Shopping';
 const THEATER_ADDRESS = 'Av. das Américas, 15.500 - Recreio dos Bandeirantes, Rio de Janeiro - RJ, CEP: 22790-702';
 
-// Inicializa Supabase
+// Inicializa Supabase (opcional / caso o banco esteja ativo)
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
-// Armazenamento em memória caso o Supabase não esteja disponível
+// Armazenamento em memória (para a sessão/instância ativa)
 const memoryOrders = new Map();
+const checkinStatusMap = new Map();
 
 // Helper para gerar código amigável de ingresso
 function generateFriendlyCode() {
@@ -97,13 +98,18 @@ app.post('/api/checkout/create-payment', async (req, res) => {
     const orderId = crypto.randomUUID();
     const ticketCode = generateFriendlyCode();
 
+    const cleanCpf = cpf.replace(/\D/g, '');
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneArea = cleanPhone.substring(0, 2) || '21';
+    const phoneNumber = cleanPhone.substring(2) || '999999999';
+
     const orderPayload = {
       id: orderId,
       ticket_code: ticketCode,
       customer_name: customer_name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone.trim(),
-      cpf: cpf.replace(/\D/g, ''),
+      cpf: cleanCpf,
       movie_title: MOVIE_TITLE,
       session_datetime: SESSION_DATETIME,
       theater_name: THEATER_NAME,
@@ -121,7 +127,7 @@ app.post('/api/checkout/create-payment', async (req, res) => {
     // Salva em memória como fallback rápido
     memoryOrders.set(orderId, orderPayload);
 
-    // Tenta persistir no Supabase na tabela cinema_tickets ou orders
+    // Tenta persistir no Supabase caso esteja configurado e ativo
     if (supabase) {
       try {
         const dbPayload = {
@@ -141,7 +147,7 @@ app.post('/api/checkout/create-payment', async (req, res) => {
 
         const { error: sbError } = await supabase.from('orders').insert([dbPayload]);
         if (sbError) {
-          console.warn('[Supabase Warning] Não foi possível salvar em orders, mantendo em memória:', sbError.message);
+          console.warn('[Supabase Warning] Não foi possível salvar em orders:', sbError.message);
         }
       } catch (sbErr) {
         console.warn('[Supabase Error]:', sbErr.message);
@@ -155,7 +161,6 @@ app.post('/api/checkout/create-payment', async (req, res) => {
     // SE O USUÁRIO OPTAR POR PIX DIRETO TRANSPARENTE
     if (payment_type === 'pix' && OFFICIAL_MP_TOKEN) {
       try {
-        const cleanCpf = cpf.replace(/\D/g, '');
         const pixPayload = {
           transaction_amount: totalAmount,
           description: `Ingresso Cinema: ${MOVIE_TITLE} (${qty}x)`,
@@ -169,6 +174,35 @@ app.post('/api/checkout/create-payment', async (req, res) => {
               type: 'CPF',
               number: cleanCpf
             }
+          },
+          additional_info: {
+            payer: {
+              first_name: customer_name.split(' ')[0],
+              last_name: customer_name.split(' ').slice(1).join(' ') || 'Cliente',
+              phone: {
+                area_code: phoneArea,
+                number: phoneNumber
+              }
+            },
+            items: [
+              {
+                id: 'ticket-daniel-fornalha',
+                title: `Ingresso Cinema: ${MOVIE_TITLE}`,
+                description: `Sessão ${SESSION_DATETIME} - ${THEATER_NAME} (${qty} ingresso(s))`,
+                quantity: qty,
+                unit_price: TICKET_PRICE
+              }
+            ]
+          },
+          metadata: {
+            order_id: orderId,
+            ticket_code: ticketCode,
+            customer_name: customer_name.trim(),
+            customer_email: email.trim().toLowerCase(),
+            customer_phone: phone.trim(),
+            customer_cpf: cleanCpf,
+            quantity: qty,
+            children_under_3: kids
           },
           notification_url: `${baseUrl}/api/webhooks/mercadopago`
         };
@@ -205,11 +239,10 @@ app.post('/api/checkout/create-payment', async (req, res) => {
 
       } catch (pixErr) {
         console.warn('[Pix Direct Warning] Falha na emissão de PIX direto, caindo para Checkout Pro Preference:', pixErr.response?.data || pixErr.message);
-        // Segue adiante para Checkout Pro caso a conta não tenha autorização direta de PIX
       }
     }
 
-    // CHECKOUT PRO (PREFERENCE MERCADO PAGO - CARTÃO, PIX, PARCELAMENTO)
+    // CHECKOUT PRO (PREFERENCE MERCADO PAGO - CARTÃO À VISTA, PIX)
     if (OFFICIAL_MP_TOKEN) {
       try {
         const prefPayload = {
@@ -228,13 +261,23 @@ app.post('/api/checkout/create-payment', async (req, res) => {
             surname: customer_name.split(' ').slice(1).join(' ') || 'Cinema',
             email: email,
             phone: {
-              area_code: phone.replace(/\D/g, '').substring(0, 2) || '21',
-              number: phone.replace(/\D/g, '').substring(2) || '999999999'
+              area_code: phoneArea,
+              number: phoneNumber
             },
             identification: {
               type: 'CPF',
-              number: cpf.replace(/\D/g, '')
+              number: cleanCpf
             }
+          },
+          metadata: {
+            order_id: orderId,
+            ticket_code: ticketCode,
+            customer_name: customer_name.trim(),
+            customer_email: email.trim().toLowerCase(),
+            customer_phone: phone.trim(),
+            customer_cpf: cleanCpf,
+            quantity: qty,
+            children_under_3: kids
           },
           back_urls: {
             success: `${baseUrl}/ingresso.html?id=${orderId}&status=success`,
@@ -287,7 +330,7 @@ app.post('/api/checkout/create-payment', async (req, res) => {
       }
     }
 
-    // Modo simulação caso o token falhe
+    // Modo simulação caso o token não esteja configurado
     return res.json({
       success: true,
       mode: 'sandbox_simulation',
@@ -306,6 +349,174 @@ app.post('/api/checkout/create-payment', async (req, res) => {
 });
 
 // -------------------------------------------------------------
+// HELPER CENTRAL: BUSCA E SINCRONIZAÇÃO MERCADO PAGO
+// -------------------------------------------------------------
+async function fetchTicketsFromMercadoPago() {
+  if (!OFFICIAL_MP_TOKEN) return [];
+
+  try {
+    const [paymentsRes, prefsRes] = await Promise.all([
+      axios.get('https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=100', {
+        headers: { 'Authorization': `Bearer ${OFFICIAL_MP_TOKEN}` }
+      }),
+      axios.get('https://api.mercadopago.com/checkout/preferences/search?limit=50', {
+        headers: { 'Authorization': `Bearer ${OFFICIAL_MP_TOKEN}` }
+      })
+    ]);
+
+    const payments = paymentsRes.data.results || [];
+    const prefs = prefsRes.data.elements || [];
+
+    // Mapeia preferências de cinema com detalhes completos
+    const cinemaPrefsMap = new Map();
+    const cinemaPrefsList = prefs.filter(p => {
+      const itStr = JSON.stringify(p.items || []);
+      return itStr.includes('Daniel') || itStr.includes('Cinema') || itStr.includes('Fornalha');
+    });
+
+    for (const cp of cinemaPrefsList) {
+      try {
+        const fullPrefRes = await axios.get(`https://api.mercadopago.com/checkout/preferences/${cp.id}`, {
+          headers: { 'Authorization': `Bearer ${OFFICIAL_MP_TOKEN}` }
+        });
+        const fullPref = fullPrefRes.data;
+        if (cp.external_reference) cinemaPrefsMap.set(cp.external_reference, fullPref);
+        cinemaPrefsMap.set(cp.id, fullPref);
+      } catch (e) {
+        if (cp.external_reference) cinemaPrefsMap.set(cp.external_reference, cp);
+        cinemaPrefsMap.set(cp.id, cp);
+      }
+    }
+
+    // Filtra pagamentos do evento de Cinema
+    const cinemaPayments = payments.filter(p => {
+      const desc = (p.description || '').toLowerCase();
+      const isCinema = desc.includes('cinema') || desc.includes('daniel') || desc.includes('fornalha');
+      const isTest = desc.includes('teste');
+      return isCinema && !isTest;
+    });
+
+    const tickets = [];
+
+    for (const p of cinemaPayments) {
+      const extRef = p.external_reference || '';
+      const pref = cinemaPrefsMap.get(extRef) || null;
+      const memOrder = memoryOrders.get(extRef) || memoryOrders.get(String(p.id)) || null;
+
+      let custName = '';
+      let custEmail = '';
+      let custPhone = '';
+      let custCpf = '';
+      let kids = 0;
+      let ticketCode = '';
+
+      // 1. Dados salvos em memória
+      if (memOrder) {
+        custName = memOrder.customer_name || custName;
+        custEmail = memOrder.email || custEmail;
+        custPhone = memOrder.phone || custPhone;
+        custCpf = memOrder.cpf || custCpf;
+        kids = memOrder.children_under_3 || kids;
+        ticketCode = memOrder.ticket_code || ticketCode;
+      }
+
+      // 2. Metadata do Mercado Pago
+      if (p.metadata) {
+        if (p.metadata.customer_name) custName = p.metadata.customer_name;
+        if (p.metadata.customer_email) custEmail = p.metadata.customer_email;
+        if (p.metadata.customer_phone) custPhone = p.metadata.customer_phone;
+        if (p.metadata.customer_cpf) custCpf = p.metadata.customer_cpf;
+        if (p.metadata.children_under_3) kids = Number(p.metadata.children_under_3) || kids;
+        if (p.metadata.ticket_code) ticketCode = p.metadata.ticket_code;
+      }
+
+      // 3. Additional info do Payment
+      if (p.additional_info?.payer) {
+        const ap = p.additional_info.payer;
+        if (!custName && (ap.first_name || ap.last_name)) {
+          custName = [ap.first_name, ap.last_name].filter(Boolean).join(' ');
+        }
+        if (!custPhone && ap.phone?.number) {
+          custPhone = [ap.phone.area_code, ap.phone.number].filter(Boolean).join(' ');
+        }
+      }
+
+      // 4. Preferência vinculada
+      if (pref) {
+        if (!custName && (pref.payer?.name || pref.payer?.surname)) {
+          custName = [pref.payer.name, pref.payer.surname].filter(Boolean).join(' ');
+        }
+        if (!custEmail && pref.payer?.email) custEmail = pref.payer.email;
+        if (!custPhone && pref.payer?.phone?.number) {
+          custPhone = [pref.payer.phone.area_code, pref.payer.phone.number].filter(Boolean).join(' ');
+        }
+        if (!custCpf && pref.payer?.identification?.number) custCpf = pref.payer.identification.number;
+        if (pref.metadata?.customer_name && !custName) custName = pref.metadata.customer_name;
+        if (pref.metadata?.ticket_code && !ticketCode) ticketCode = pref.metadata.ticket_code;
+      }
+
+      // 5. Objeto Payer direto do Payment
+      if (p.payer) {
+        if (!custName && (p.payer.first_name || p.payer.last_name)) {
+          custName = [p.payer.first_name, p.payer.last_name].filter(Boolean).join(' ');
+        }
+        if (!custEmail && p.payer.email && !p.payer.email.includes('XXXXXXXX')) {
+          custEmail = p.payer.email;
+        }
+        if (!custCpf && p.payer.identification?.number && p.payer.identification.number !== '99999999999') {
+          custCpf = p.payer.identification.number;
+        }
+      }
+
+      // Identificação específica dos pagamentos iniciais realizados via PIX
+      if (String(p.id) === '186572981404') {
+        custName = 'Dulcinéa S Andrade';
+        custEmail = 'dusiandrade@gmail.com';
+        custPhone = '(21) 99961-5470';
+        custCpf = '803.689.487-49';
+      } else if (String(p.id) === '186475844980') {
+        custName = 'Comprador Pix (Itaú)';
+      }
+
+      if (!ticketCode) {
+        ticketCode = 'DAN-' + String(p.id).slice(-5);
+      }
+
+      const qty = Math.max(1, Math.round(Number(p.transaction_amount) / TICKET_PRICE));
+      const isChecked = checkinStatusMap.get(String(p.id)) || checkinStatusMap.get(extRef) || false;
+
+      tickets.push({
+        id: String(p.id),
+        order_id: extRef || String(p.id),
+        ticket_code: ticketCode,
+        customer_name: custName || 'Comprador Ingresso',
+        email: custEmail || '-',
+        phone: custPhone || '-',
+        cpf: custCpf || '-',
+        quantity: qty,
+        children_under_3: kids,
+        total_amount: Number(p.transaction_amount),
+        mp_status: p.status,
+        mp_status_detail: p.status_detail,
+        payment_method: p.payment_method_id,
+        date_created: p.date_created,
+        checkin_done: Boolean(isChecked),
+        movie_title: MOVIE_TITLE,
+        session_datetime: SESSION_DATETIME,
+        theater_name: THEATER_NAME,
+        theater_address: THEATER_ADDRESS
+      });
+    }
+
+    return tickets;
+
+  } catch (err) {
+    console.error('[Mercado Pago Sync Error]:', err.message);
+    return [];
+  }
+}
+
+// -------------------------------------------------------------
 // 3. CONSULTA DE INGRESSO (STATUS E DADOS PARA APRESENTAÇÃO)
 // -------------------------------------------------------------
 app.get('/api/tickets/:id', async (req, res) => {
@@ -316,7 +527,18 @@ app.get('/api/tickets/:id', async (req, res) => {
     return res.json(memoryOrders.get(id));
   }
 
-  // 2. Procura no Supabase
+  // 2. Procura no Mercado Pago
+  try {
+    const mpTickets = await fetchTicketsFromMercadoPago();
+    const found = mpTickets.find(t => t.id === id || t.order_id === id || t.ticket_code === id);
+    if (found) {
+      return res.json(found);
+    }
+  } catch (e) {
+    console.warn('[Ticket Lookup MP Error]:', e.message);
+  }
+
+  // 3. Procura no Supabase
   if (supabase) {
     try {
       const { data, error } = await supabase.from('orders').select('*').eq('id', id).maybeSingle();
@@ -339,7 +561,7 @@ app.get('/api/tickets/:id', async (req, res) => {
         return res.json(parsed);
       }
     } catch (err) {
-      console.warn('[Ticket Lookup Error]:', err.message);
+      console.warn('[Ticket Lookup Supabase Error]:', err.message);
     }
   }
 
@@ -358,14 +580,13 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
   }
 
   const isCheckin = Boolean(status);
-  let found = false;
+  checkinStatusMap.set(id, isCheckin);
 
   if (memoryOrders.has(id)) {
     const ord = memoryOrders.get(id);
     ord.checkin_done = isCheckin;
     ord.checkin_at = isCheckin ? new Date().toISOString() : null;
     memoryOrders.set(id, ord);
-    found = true;
   }
 
   if (supabase) {
@@ -374,22 +595,18 @@ app.post('/api/admin/checkin/:id', async (req, res) => {
         shipping_status: isCheckin ? 'Check-in Realizado (Entrada Confirmada)' : 'Pendente de Entrada',
         updated_at: new Date().toISOString()
       }).eq('id', id);
-      found = true;
     } catch (err) {}
   }
 
-  if (found) {
-    return res.json({ 
-      success: true, 
-      checkin_done: isCheckin,
-      message: isCheckin ? 'Check-in confirmado com sucesso! Entrada liberada.' : 'Check-in desfeito com sucesso.' 
-    });
-  }
-  return res.status(404).json({ error: 'Ingresso não encontrado.' });
+  return res.json({ 
+    success: true, 
+    checkin_done: isCheckin,
+    message: isCheckin ? 'Check-in confirmado com sucesso! Entrada liberada.' : 'Check-in desfeito com sucesso.' 
+  });
 });
 
 // -------------------------------------------------------------
-// 5. LISTAGEM DE INGRESSOS PARA O ADMIN
+// 5. LISTAGEM DE INGRESSOS PARA O ADMIN (MERCADO PAGO EM TEMPO REAL)
 // -------------------------------------------------------------
 app.get('/api/admin/tickets', async (req, res) => {
   const pwd = req.headers['x-admin-password'] || req.query.password;
@@ -397,20 +614,36 @@ app.get('/api/admin/tickets', async (req, res) => {
     return res.status(401).json({ error: 'Não autorizado.' });
   }
 
-  let list = Array.from(memoryOrders.values());
+  try {
+    // 1. Busca tickets sincronizados diretamente do Mercado Pago
+    const mpTickets = await fetchTicketsFromMercadoPago();
 
-  if (supabase) {
-    try {
-      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      if (data && data.length > 0) {
-        // Filtra pedidos relacionados a cinema ou une com memória
-        const dbTickets = data.filter(d => (d.complement && d.complement.includes('FILME')) || (d.shipping_service_name && d.shipping_service_name.includes('Cinema')));
-        return res.json({ tickets: dbTickets.length > 0 ? dbTickets : list });
+    // 2. Mescla com pedidos em memória que ainda não foram sincronizados
+    const allTicketsMap = new Map();
+
+    for (const t of mpTickets) {
+      allTicketsMap.set(t.id, t);
+      if (t.order_id) allTicketsMap.set(t.order_id, t);
+    }
+
+    for (const [memId, memTicket] of memoryOrders.entries()) {
+      if (!allTicketsMap.has(memId) && !allTicketsMap.has(memTicket.mp_payment_id)) {
+        allTicketsMap.set(memId, {
+          ...memTicket,
+          checkin_done: checkinStatusMap.get(memId) || memTicket.checkin_done || false
+        });
       }
-    } catch (e) {}
-  }
+    }
 
-  return res.json({ tickets: list });
+    // 3. Recupera tickets únicos
+    const uniqueTickets = Array.from(new Set(allTicketsMap.values()));
+
+    return res.json({ tickets: uniqueTickets });
+
+  } catch (error) {
+    console.error('[Admin Tickets Error]:', error);
+    return res.json({ tickets: Array.from(memoryOrders.values()) });
+  }
 });
 
 // -------------------------------------------------------------
@@ -435,11 +668,13 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
         }
 
         if (supabase) {
-          await supabase.from('orders').update({
-            mp_status: paymentInfo.status,
-            mp_payment_id: String(data.id),
-            updated_at: new Date().toISOString()
-          }).eq('id', orderId);
+          try {
+            await supabase.from('orders').update({
+              mp_status: paymentInfo.status,
+              mp_payment_id: String(data.id),
+              updated_at: new Date().toISOString()
+            }).eq('id', orderId);
+          } catch (e) {}
         }
         console.log(`[Webhook MP Cinema] Pagamento ${data.id} para pedido ${orderId}: ${paymentInfo.status}`);
       }

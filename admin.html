@@ -474,9 +474,14 @@
               <span style="font-family: monospace; font-weight: 800; color: var(--gold-primary); font-size: 0.95rem;">${code}</span>
               <h3 style="font-size: 1.15rem; margin-top: 0.2rem; color: #fff;">${item.customer_name || 'Comprador'}</h3>
             </div>
-            <span style="font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: var(--radius-full); font-weight: 700; background: ${isChecked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isChecked ? '#10b981' : '#f59e0b'};">
-              ${isChecked ? '✓ Entrada Confirmada' : 'Aguardando'}
-            </span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem;">
+              <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-weight: 700; background: ${item.mp_status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${item.mp_status === 'approved' ? '#10b981' : '#f87171'};">
+                ${item.mp_status === 'approved' ? '✓ Pago (' + (item.payment_method ? item.payment_method.toUpperCase() : 'PIX') + ')' : '⏳ Aguardando Pagamento'}
+              </span>
+              <span style="font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-weight: 700; background: ${isChecked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${isChecked ? '#10b981' : '#f59e0b'};">
+                ${isChecked ? '✓ Na Sala' : 'Portaria'}
+              </span>
+            </div>
           </div>
 
           <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #cbd5e1; flex-wrap: wrap;">
@@ -540,8 +545,8 @@
             R$ ${(Number(item.total_amount) || (qty * 27)).toFixed(2).replace('.', ',')}
           </td>
           <td style="padding: 0.75rem;">
-            <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.2); color: #10b981;">
-              Pago
+            <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full); background: ${item.mp_status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${item.mp_status === 'approved' ? '#10b981' : '#f87171'};">
+              ${item.mp_status === 'approved' ? '✓ ' + (item.payment_method ? item.payment_method.toUpperCase() : 'PAGO') : 'Pendente'}
             </span>
           </td>
           <td style="padding: 0.75rem; text-align: center;">
