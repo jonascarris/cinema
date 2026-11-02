@@ -8,6 +8,7 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   : '/api';
 
 const TICKET_PRICE = 27.00;
+const IS_SOLD_OUT = true; // Vagas esgotadas - bloqueia abertura de checkout e novos pagamentos
 
 let ticketCount = 1;
 let kidsCount = 0;
@@ -102,6 +103,10 @@ function initModal() {
 
   if (btnOpen && modal) {
     btnOpen.addEventListener('click', () => {
+      if (IS_SOLD_OUT) {
+        alert('As vagas para esta sessão foram esgotadas!');
+        return;
+      }
       modal.classList.add('active');
     });
   }
@@ -170,6 +175,11 @@ function initCheckoutSubmit() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (IS_SOLD_OUT) {
+      alert('As vagas para esta sessão foram esgotadas! Novos pagamentos estão encerrados.');
+      return;
+    }
 
     const name = document.getElementById('cust-name').value.trim();
     const email = document.getElementById('cust-email').value.trim();

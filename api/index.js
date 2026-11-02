@@ -27,6 +27,7 @@ const OFFICIAL_MP_PUBLIC_KEY = process.env.MERCADO_PAGO_PUBLIC_KEY || '';
 
 // Preço e Informações do Filme
 const TICKET_PRICE = 27.00;
+const SOLD_OUT = true; // Vagas esgotadas - bloqueia emissão de novos pagamentos
 const MOVIE_TITLE = 'Daniel e a Fornalha Ardente';
 const SESSION_DATETIME = '02/11 às 19h';
 const SESSION_RECOMMENDATION = 'Chegar com 30 minutos de antecedência (às 18h30)';
@@ -65,6 +66,7 @@ app.get('/api/health', (req, res) => {
     theater: THEATER_NAME,
     address: THEATER_ADDRESS,
     ticket_price: TICKET_PRICE,
+    sold_out: SOLD_OUT,
     rules: {
       children_under_3_free: true,
       children_description: 'Crianças até 3 anos não pagam (sentam no colo). Acima de 3 anos pagam valor integral (R$ 27,00).'
@@ -79,6 +81,14 @@ app.get('/api/health', (req, res) => {
 // -------------------------------------------------------------
 app.post('/api/checkout/create-payment', async (req, res) => {
   try {
+    if (SOLD_OUT) {
+      return res.status(403).json({
+        success: false,
+        sold_out: true,
+        error: 'As vagas para esta sessão foram esgotadas! Novos pagamentos estão encerrados.'
+      });
+    }
+
     const {
       customer_name,
       email,
